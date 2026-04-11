@@ -1,106 +1,56 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Bookings\BookingAdjustmentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MasterData\AddonController;
+use App\Http\Controllers\MasterData\BrandController;
+use App\Http\Controllers\MasterData\SeasonalPriceController;
+use App\Http\Controllers\MasterData\VillaController;
+use App\Http\Controllers\MasterData\VillaUnitController;
+use App\Http\Controllers\MasterData\VoucherController;
+use App\Http\Controllers\PaymentController;
+use Illuminate\Support\Facades\Route;
 
-// dashboard pages
-Route::get('/', function () {
-    return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
-})->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-// calender pages
-Route::get('/calendar', function () {
-    return view('pages.calender', ['title' => 'Calendar']);
-})->name('calendar');
+Route::view('/calendar', 'pages.module-placeholder', [
+    'title' => 'Kalender Booking',
+    'pageTitle' => 'Kalender Booking',
+    'description' => 'Perencanaan ketersediaan dan okupansi akan tetap memakai layout TailAdmin dan disambungkan ke data booking pada tahap berikutnya.',
+])->name('calendar');
 
-// profile pages
-Route::get('/profile', function () {
-    return view('pages.profile', ['title' => 'Profile']);
-})->name('profile');
+Route::prefix('master-data')->group(function (): void {
+    Route::resource('brands', BrandController::class)->except('show');
+    Route::resource('villas', VillaController::class)->except('show');
+    Route::resource('villa-units', VillaUnitController::class)->except('show');
+    Route::resource('seasonal-prices', SeasonalPriceController::class)->except('show');
+    Route::resource('addons', AddonController::class)->except('show');
+    Route::resource('vouchers', VoucherController::class)->except('show');
+});
 
-// form pages
-Route::get('/form-elements', function () {
-    return view('pages.form.form-elements', ['title' => 'Form Elements']);
-})->name('form-elements');
+Route::resource('bookings', BookingController::class)->only(['index', 'create', 'store', 'show']);
+Route::get('bookings/{booking}/adjustments/create', [BookingAdjustmentController::class, 'create'])->name('bookings.adjustments.create');
+Route::post('bookings/{booking}/adjustments', [BookingAdjustmentController::class, 'store'])->name('bookings.adjustments.store');
 
-// tables pages
-Route::get('/basic-tables', function () {
-    return view('pages.tables.basic-tables', ['title' => 'Basic Tables']);
-})->name('basic-tables');
+Route::resource('payments', PaymentController::class)->only(['index', 'create', 'store']);
 
-// pages
+Route::prefix('reports')->group(function (): void {
+    Route::view('/finance', 'pages.module-placeholder', [
+        'title' => 'Laporan Keuangan',
+        'pageTitle' => 'Laporan Keuangan',
+        'description' => 'Ekspor finance, visibilitas saldo, dan keluaran spreadsheet sync nantinya tersedia di sini.',
+    ])->name('reports.finance');
+});
 
-Route::get('/blank', function () {
-    return view('pages.blank', ['title' => 'Blank']);
-})->name('blank');
+Route::prefix('migration')->group(function (): void {
+    Route::view('/legacy', 'pages.module-placeholder', [
+        'title' => 'Pemetaan Legacy',
+        'pageTitle' => 'Pemetaan Legacy',
+        'description' => 'Pemetaan data legacy `vilas`, `reservasi`, dan data historis akan didokumentasikan serta disambungkan di sini pada fase berikutnya.',
+    ])->name('migration.legacy');
+});
 
-// error pages
-Route::get('/error-404', function () {
-    return view('pages.errors.error-404', ['title' => 'Error 404']);
-})->name('error-404');
-
-// chart pages
-Route::get('/line-chart', function () {
-    return view('pages.chart.line-chart', ['title' => 'Line Chart']);
-})->name('line-chart');
-
-Route::get('/bar-chart', function () {
-    return view('pages.chart.bar-chart', ['title' => 'Bar Chart']);
-})->name('bar-chart');
-
-
-// authentication pages
-Route::get('/signin', function () {
-    return view('pages.auth.signin', ['title' => 'Sign In']);
-})->name('signin');
-
-Route::get('/signup', function () {
-    return view('pages.auth.signup', ['title' => 'Sign Up']);
-})->name('signup');
-
-// ui elements pages
-Route::get('/alerts', function () {
-    return view('pages.ui-elements.alerts', ['title' => 'Alerts']);
-})->name('alerts');
-
-Route::get('/avatars', function () {
-    return view('pages.ui-elements.avatars', ['title' => 'Avatars']);
-})->name('avatars');
-
-Route::get('/badge', function () {
-    return view('pages.ui-elements.badges', ['title' => 'Badges']);
-})->name('badges');
-
-Route::get('/buttons', function () {
-    return view('pages.ui-elements.buttons', ['title' => 'Buttons']);
-})->name('buttons');
-
-Route::get('/image', function () {
-    return view('pages.ui-elements.images', ['title' => 'Images']);
-})->name('images');
-
-Route::get('/videos', function () {
-    return view('pages.ui-elements.videos', ['title' => 'Videos']);
-})->name('videos');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Route::view('/profile', 'pages.profile', ['title' => 'Profil'])->name('profile');
+Route::view('/signin', 'pages.auth.signin', ['title' => 'Masuk'])->name('signin');
+Route::view('/signup', 'pages.auth.signup', ['title' => 'Daftar'])->name('signup');

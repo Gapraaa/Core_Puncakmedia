@@ -1,0 +1,23 @@
+# Backlog
+
+- [ ] Review Laravel 12 + TailAdmin starter structure
+- [ ] Setup MySQL connection
+- [ ] Decide auth package / role strategy
+- [ ] Create brands migration
+- [ ] Create villas migration
+- [ ] Create villa_units migration
+- [ ] Create villa_brand migration
+- [ ] Create seasonal_prices migration
+- [ ] Create addons migration
+- [ ] Create vouchers migration
+- [ ] Create bookings migration
+- [ ] Create booking_items migration
+- [ ] Create payments migration
+- [ ] Create initial seeders for roles
+- [ ] Build basic dashboard layout plan
+- [ ] Build villa CRUD
+- [ ] Build villa unit CRUD
+- [ ] Build booking form
+- [ ] Build payment input flow
+- [ ] Plan spreadsheet sync
+- [ ] Map legacy database

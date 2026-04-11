@@ -1,4 +1,4 @@
-@props(['pageTitle' => 'Page'])
+@props(['pageTitle' => 'Halaman'])
 
 <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
     <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">
@@ -11,7 +11,7 @@
                     class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
                     href="{{ url('/') }}"
                 >
-                    Home
+                    Beranda
                     <svg
                         class="stroke-current"
                         width="17"

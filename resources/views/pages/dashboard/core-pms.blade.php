@@ -31,19 +31,19 @@
                         Sisa saldo seluruh booking: <span class="font-semibold text-gray-800 dark:text-white/90">Rp {{ number_format($totalOutstanding, 0, ',', '.') }}</span>
                     </div>
                     <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900/40">
-                        Booking unpaid / partial / paid: <span class="font-semibold text-gray-800 dark:text-white/90">{{ $paymentStatusCounts['unpaid'] }} / {{ $paymentStatusCounts['partial'] }} / {{ $paymentStatusCounts['paid'] }}</span>
+                        Booking DP / Cicil / Lunas: <span class="font-semibold text-gray-800 dark:text-white/90">{{ $paymentStatusCounts['dp'] }} / {{ $paymentStatusCounts['cicil'] }} / {{ $paymentStatusCounts['lunas'] }}</span>
                     </div>
                 </div>
             </x-common.component-card>
         </div>
 
         <div class="col-span-12 xl:col-span-5">
-            <x-common.component-card title="Status Payment Booking" desc="Pantau sebaran unpaid, partial, dan paid dari seluruh booking.">
+            <x-common.component-card title="Status Payment Booking" desc="Pantau sebaran DP, Cicil, dan Lunas dari seluruh booking.">
                 <div class="space-y-4">
                     @foreach ([
-                        ['label' => 'Unpaid', 'value' => $paymentStatusCounts['unpaid'], 'color' => 'bg-gray-200 dark:bg-gray-700'],
-                        ['label' => 'Partial', 'value' => $paymentStatusCounts['partial'], 'color' => 'bg-warning-500'],
-                        ['label' => 'Paid', 'value' => $paymentStatusCounts['paid'], 'color' => 'bg-success-500'],
+                        ['label' => 'DP', 'value' => $paymentStatusCounts['dp'], 'color' => 'bg-blue-400 dark:bg-blue-600'],
+                        ['label' => 'Cicil', 'value' => $paymentStatusCounts['cicil'], 'color' => 'bg-warning-500'],
+                        ['label' => 'Lunas', 'value' => $paymentStatusCounts['lunas'], 'color' => 'bg-success-500'],
                     ] as $status)
                         @php
                             $totalStatuses = max(1, array_sum($paymentStatusCounts));
@@ -100,7 +100,7 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $payment->booking?->booking_code ?? 'Tanpa booking' }}</p>
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('d M Y H:i') }} • {{ ucfirst($payment->payment_method) }} • {{ str_replace('_', ' ', $payment->received_by) }}</p>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('d M Y H:i') }} &middot; {{ ucfirst($payment->payment_method) }} &middot; {{ str_replace('_', ' ', $payment->received_by) }}</p>
                                 </div>
                                 <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Rp {{ number_format($payment->amount, 0, ',', '.') }}</p>
                             </div>
@@ -120,9 +120,10 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}</p>
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $booking->guest_name }} • {{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</p>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $booking->guest_name }} &middot; {{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</p>
                                 </div>
-                                <x-ui.badge :color="$booking->payment_status === 'paid' ? 'success' : ($booking->payment_status === 'partial' ? 'warning' : 'light')">{{ $booking->payment_status }}</x-ui.badge>
+                                @php $paymentBadge = match($booking->payment_status) { 'lunas' => 'success', 'cicil' => 'warning', default => 'info', }; @endphp
+                                <x-ui.badge :color="$paymentBadge">{{ strtoupper($booking->payment_status) }}</x-ui.badge>
                             </div>
                         </div>
                     @empty

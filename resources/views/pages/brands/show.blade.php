@@ -22,7 +22,6 @@
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Nama:</span> {{ $brand->name }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Slug:</span> {{ $brand->slug }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Logo:</span> {{ $brand->logo ?: 'Belum diisi' }}</div>
-                        <div><span class="font-medium text-gray-800 dark:text-white/90">Info Bank:</span> {{ $brand->bank_info ?: 'Belum diisi' }}</div>
                     </div>
                 </x-common.component-card>
             </div>

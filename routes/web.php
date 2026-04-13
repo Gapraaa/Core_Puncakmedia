@@ -29,11 +29,17 @@ Route::prefix('master-data')->group(function (): void {
     Route::resource('vouchers', VoucherController::class)->except('show');
 });
 
-Route::resource('bookings', BookingController::class)->only(['index', 'create', 'store', 'show']);
+Route::get('bookings', [BookingController::class, 'indexVillas'])->name('bookings.index');
+Route::get('bookings/villas/{villa}', [BookingController::class, 'index'])->name('bookings.list');
+Route::get('bookings/villas/{villa}/create', [BookingController::class, 'create'])->name('bookings.create');
+Route::post('bookings/villas/{villa}', [BookingController::class, 'store'])->name('bookings.store');
+Route::get('bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
 Route::get('bookings/{booking}/adjustments/create', [BookingAdjustmentController::class, 'create'])->name('bookings.adjustments.create');
 Route::post('bookings/{booking}/adjustments', [BookingAdjustmentController::class, 'store'])->name('bookings.adjustments.store');
 
-Route::resource('payments', PaymentController::class)->only(['index', 'create', 'store']);
+// Payment: tambah dari detail booking, ledger tetap untuk Finance
+Route::post('bookings/{booking}/payments', [PaymentController::class, 'store'])->name('bookings.payments.store');
+Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
 
 Route::prefix('reports')->group(function (): void {
     Route::view('/finance', 'pages.module-placeholder', [

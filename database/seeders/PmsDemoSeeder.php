@@ -75,19 +75,16 @@ class PmsDemoSeeder extends Seeder
                 'name' => 'PuncakMediaBogor',
                 'slug' => 'puncakmediabogor',
                 'logo' => 'logos/puncakmediabogor.png',
-                'bank_info' => 'BCA 1234567890 a.n. PuncakMediaBogor',
             ],
             [
                 'name' => 'Ngevillayuk',
                 'slug' => 'ngevillayuk',
                 'logo' => 'logos/ngevillayuk.png',
-                'bank_info' => 'Mandiri 9876543210 a.n. Ngevillayuk',
             ],
             [
                 'name' => 'Kagivilla',
                 'slug' => 'kagivilla',
                 'logo' => 'logos/kagivilla.png',
-                'bank_info' => 'BRI 4567891230 a.n. Kagivilla',
             ],
         ])->mapWithKeys(function (array $brand): array {
             $record = Brand::query()->updateOrCreate(
@@ -108,7 +105,6 @@ class PmsDemoSeeder extends Seeder
                 'slug' => 'villa-alam-pinus',
                 'name' => 'Villa Alam Pinus',
                 'location' => 'Cisarua, Puncak',
-                'capacity' => 20,
                 'is_resort' => false,
                 'status' => 'active',
                 'description' => 'Villa keluarga besar dengan halaman luas dan view gunung.',
@@ -118,15 +114,13 @@ class PmsDemoSeeder extends Seeder
                 'youtube_url' => 'https://youtube.com/watch?v=alam-pinus',
                 'brand_slugs' => ['puncakmediabogor', 'ngevillayuk'],
                 'units' => [
-                    ['unit_name' => 'Pinus A', 'unit_type' => 'private', 'capacity' => 10, 'price_weekday' => 900000, 'price_semi_weekend' => 1100000, 'price_weekend' => 1300000],
-                    ['unit_name' => 'Pinus B', 'unit_type' => 'private', 'capacity' => 12, 'price_weekday' => 1000000, 'price_semi_weekend' => 1200000, 'price_weekend' => 1400000],
+                    ['unit_name' => 'Villa Alam Pinus', 'unit_type' => 'private', 'capacity' => 20, 'price_weekday' => 900000, 'price_semi_weekend' => 1100000, 'price_weekend' => 1300000],
                 ],
             ],
             [
                 'slug' => 'villa-pondok-awan',
                 'name' => 'Villa Pondok Awan',
                 'location' => 'Megamendung, Puncak',
-                'capacity' => 18,
                 'is_resort' => false,
                 'status' => 'active',
                 'description' => 'Villa sejuk dengan kolam renang dan area BBQ.',
@@ -136,15 +130,13 @@ class PmsDemoSeeder extends Seeder
                 'youtube_url' => 'https://youtube.com/watch?v=pondok-awan',
                 'brand_slugs' => ['puncakmediabogor'],
                 'units' => [
-                    ['unit_name' => 'Awan 1', 'unit_type' => 'private', 'capacity' => 8, 'price_weekday' => 850000, 'price_semi_weekend' => 1050000, 'price_weekend' => 1250000],
-                    ['unit_name' => 'Awan 2', 'unit_type' => 'private', 'capacity' => 10, 'price_weekday' => 950000, 'price_semi_weekend' => 1150000, 'price_weekend' => 1350000],
+                    ['unit_name' => 'Villa Pondok Awan', 'unit_type' => 'private', 'capacity' => 18, 'price_weekday' => 850000, 'price_semi_weekend' => 1050000, 'price_weekend' => 1250000],
                 ],
             ],
             [
                 'slug' => 'villa-kebun-teh',
                 'name' => 'Villa Kebun Teh',
                 'location' => 'Ciloto, Puncak',
-                'capacity' => 16,
                 'is_resort' => false,
                 'status' => 'active',
                 'description' => 'Villa dengan panorama kebun teh dan balkon luas.',
@@ -154,15 +146,13 @@ class PmsDemoSeeder extends Seeder
                 'youtube_url' => 'https://youtube.com/watch?v=kebun-teh',
                 'brand_slugs' => ['ngevillayuk', 'kagivilla'],
                 'units' => [
-                    ['unit_name' => 'Teh Hijau', 'unit_type' => 'suite', 'capacity' => 6, 'price_weekday' => 700000, 'price_semi_weekend' => 900000, 'price_weekend' => 1100000],
-                    ['unit_name' => 'Teh Melati', 'unit_type' => 'suite', 'capacity' => 8, 'price_weekday' => 800000, 'price_semi_weekend' => 1000000, 'price_weekend' => 1200000],
+                    ['unit_name' => 'Villa Kebun Teh', 'unit_type' => 'private', 'capacity' => 16, 'price_weekday' => 700000, 'price_semi_weekend' => 900000, 'price_weekend' => 1100000],
                 ],
             ],
             [
                 'slug' => 'villa-cemara-hill',
                 'name' => 'Villa Cemara Hill',
                 'location' => 'Gadog, Bogor',
-                'capacity' => 22,
                 'is_resort' => true,
                 'status' => 'active',
                 'description' => 'Kompleks villa dengan beberapa unit dan fasilitas outbond.',
@@ -180,7 +170,6 @@ class PmsDemoSeeder extends Seeder
                 'slug' => 'villa-lakeview-asri',
                 'name' => 'Villa Lakeview Asri',
                 'location' => 'Sukamakmur, Bogor',
-                'capacity' => 14,
                 'is_resort' => false,
                 'status' => 'active',
                 'description' => 'Villa tenang dekat danau dengan nuansa kayu hangat.',
@@ -190,14 +179,13 @@ class PmsDemoSeeder extends Seeder
                 'youtube_url' => 'https://youtube.com/watch?v=lakeview-asri',
                 'brand_slugs' => ['puncakmediabogor', 'kagivilla'],
                 'units' => [
-                    ['unit_name' => 'Lakeview Utama', 'unit_type' => 'private', 'capacity' => 14, 'price_weekday' => 1050000, 'price_semi_weekend' => 1250000, 'price_weekend' => 1450000],
+                    ['unit_name' => 'Villa Lakeview Asri', 'unit_type' => 'private', 'capacity' => 14, 'price_weekday' => 1050000, 'price_semi_weekend' => 1250000, 'price_weekend' => 1450000],
                 ],
             ],
             [
                 'slug' => 'villa-gardenia-resort',
                 'name' => 'Villa Gardenia Resort',
                 'location' => 'Ciawi, Bogor',
-                'capacity' => 24,
                 'is_resort' => true,
                 'status' => 'active',
                 'description' => 'Resort mini dengan beberapa unit dan taman acara.',
@@ -224,7 +212,6 @@ class PmsDemoSeeder extends Seeder
                     'slug' => $definition['slug'],
                     'location' => $definition['location'],
                     'description' => $definition['description'],
-                    'capacity' => $definition['capacity'],
                     'is_resort' => $definition['is_resort'],
                     'status' => $definition['status'],
                     'rules' => $definition['rules'],
@@ -269,9 +256,8 @@ class PmsDemoSeeder extends Seeder
     protected function seedSeasonalPrices(Collection $villaUnits): void
     {
         $definitions = [
-            ['unit_key' => 'villa-alam-pinus-pinus-a', 'start_date' => '2026-04-15', 'end_date' => '2026-04-20', 'price' => 1500000, 'note' => 'Libur panjang April'],
-            ['unit_key' => 'villa-alam-pinus-pinus-b', 'start_date' => '2026-05-10', 'end_date' => '2026-05-15', 'price' => 1650000, 'note' => 'High season Mei'],
-            ['unit_key' => 'villa-kebun-teh-teh-hijau', 'start_date' => '2026-06-01', 'end_date' => '2026-06-07', 'price' => 1250000, 'note' => 'Pekan libur sekolah'],
+            ['unit_key' => 'villa-alam-pinus-villa-alam-pinus', 'start_date' => '2026-04-15', 'end_date' => '2026-04-20', 'price' => 1500000, 'note' => 'Libur panjang April'],
+            ['unit_key' => 'villa-kebun-teh-villa-kebun-teh', 'start_date' => '2026-06-01', 'end_date' => '2026-06-07', 'price' => 1250000, 'note' => 'Pekan libur sekolah'],
             ['unit_key' => 'villa-cemara-hill-cemara-executive', 'start_date' => '2026-07-15', 'end_date' => '2026-07-22', 'price' => 1850000, 'note' => 'Gathering season'],
             ['unit_key' => 'villa-gardenia-resort-gardenia-suite', 'start_date' => '2026-12-20', 'end_date' => '2026-12-31', 'price' => 2200000, 'note' => 'Akhir tahun'],
         ];
@@ -409,6 +395,7 @@ class PmsDemoSeeder extends Seeder
                     'voucher_id' => $voucher?->id,
                     'manual_discount_amount' => $manualDiscount,
                     'manual_discount_reason' => $manualReason,
+                    'booking_status' => 'confirmed',
                     'guest_link_token' => Str::lower(Str::random(40)),
                     'created_by' => $createdBy->id,
                 ],
@@ -443,18 +430,29 @@ class PmsDemoSeeder extends Seeder
             $summary = $totalsService->summarize($booking, $booking->items, $booking->payments);
             $booking->update($summary);
 
+            // Setiap booking wajib punya DP
             $paymentScenario = ($index - 1) % 4;
 
-            if ($paymentScenario === 1) {
-                $this->createPayment($booking, (int) round($booking->grand_total * 0.5), 'transfer', 'finance', $users['finance']->id, $checkIn->copy()->subDays(2));
+            // DP saja
+            if ($paymentScenario === 0) {
+                $dpAmount = (int) round($booking->grand_total * 0.3);
+                $this->createPayment($booking, $dpAmount, 'transfer', 'finance', $users['finance']->id, $checkIn->copy()->subDays(3));
             }
 
+            // DP + 1 cicilan
+            if ($paymentScenario === 1) {
+                $dpAmount = (int) round($booking->grand_total * 0.5);
+                $this->createPayment($booking, $dpAmount, 'transfer', 'finance', $users['finance']->id, $checkIn->copy()->subDays(5));
+            }
+
+            // DP + cicilan = lunas
             if ($paymentScenario === 2) {
                 $half = (int) round($booking->grand_total * 0.4);
                 $this->createPayment($booking, $half, 'transfer', 'finance', $users['finance']->id, $checkIn->copy()->subDays(4));
                 $this->createPayment($booking, $booking->grand_total - $half, 'cash', 'office', $users['finance']->id, $checkIn->copy()->subDays(1));
             }
 
+            // DP + 2 cicilan (partially paid)
             if ($paymentScenario === 3) {
                 $first = (int) round($booking->grand_total * 0.35);
                 $second = (int) round($booking->grand_total * 0.25);

@@ -30,11 +30,28 @@ This repo is only for **App 1: Core PMS**.
 
 ## Final Domain Decisions
 - Use `villas` and `villa_units`
-- Use `brands` and `villa_brand`
+- Use `brands` (tanpa bank_info)
+- Use `villa_brand` (pivot)
 - Use `bookings`, `booking_items`, and `payments`
 - Use `addons`, `seasonal_prices`, and `vouchers`
 - Customer does not need an account
 - Use guest public link instead of guest login
+
+## Villa Architecture
+- Villa biasa (`is_resort=false`): memiliki 1 unit yang otomatis dibuat saat create villa.
+  Kapasitas dan harga diisi langsung di form villa.
+- Resort (`is_resort=true`): memiliki beberapa unit yang dikelola terpisah via halaman Villa Units.
+- Capacity hanya ada di `villa_units`, bukan di `villas`.
+
+## Booking Rules
+- Setiap booking yang masuk wajib memiliki DP (payment pertama).
+- DP diisi langsung di form create booking.
+- `booking_status`: `confirmed`, `cancelled`
+- `payment_status`: `dp`, `cicil`, `lunas`
+- Semua booking langsung berstatus `confirmed` karena pasti ada DP.
+- Pembayaran tambahan (cicilan, pelunasan) dilakukan dari halaman detail booking.
+- Tidak ada halaman "Catat Payment" terpisah.
+- Payment Ledger (daftar semua payment) tetap ada untuk Finance.
 
 ## Pricing Rules
 Default pricing fields:
@@ -87,7 +104,7 @@ Balance logic:
 - Booking may include multiple nights with mixed daily pricing
 - Add-ons may be added later and still stay linked to the same booking
 - Extend should update booking totals and remaining balance
-- A booking can move back to unpaid / partial if new add-ons or extend are added
+- A booking can move back to cicil if new add-ons or extend are added after lunas
 - Finance needs spreadsheet sync later
 
 ## Roles

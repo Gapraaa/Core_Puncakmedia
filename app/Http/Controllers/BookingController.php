@@ -8,6 +8,7 @@ use App\Http\Requests\BookingRequest;
 use App\Models\Addon;
 use App\Models\Booking;
 use App\Models\Brand;
+use App\Models\Payment;
 use App\Models\Villa;
 use App\Models\VillaUnit;
 use App\Models\Voucher;
@@ -27,10 +28,31 @@ class BookingController extends Controller
     ) {
     }
 
-    public function index(Request $request): View
+    public function indexVillas(Request $request): View
     {
-        $bookings = Booking::query()
-            ->with(['brand', 'villa', 'villaUnit'])
+        $villas = Villa::query()
+            ->with('brands')
+            ->withCount('bookings')
+            ->when($request->filled('q'), function (Builder $query) use ($request): void {
+                $keyword = trim((string) $request->string('q'));
+                $query->where('name', 'like', "%{$keyword}%")
+                      ->orWhere('location', 'like', "%{$keyword}%");
+            })
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
+
+        return view('pages.bookings.villas', [
+            'title' => 'Daftar Booking per Villa',
+            'villas' => $villas,
+            'filters' => $request->only('q'),
+        ]);
+    }
+
+    public function index(Request $request, Villa $villa): View
+    {
+        $bookings = $villa->bookings()
+            ->with(['brand', 'villaUnit'])
             ->when($request->filled('q'), function (Builder $query) use ($request): void {
                 $keyword = trim((string) $request->string('q'));
 
@@ -44,7 +66,6 @@ class BookingController extends Controller
             })
             ->when($request->filled('payment_status'), fn (Builder $query): Builder => $query->where('payment_status', $request->string('payment_status')))
             ->when($request->filled('booking_status'), fn (Builder $query): Builder => $query->where('booking_status', $request->string('booking_status')))
-            ->when($request->filled('brand_id'), fn (Builder $query): Builder => $query->where('brand_id', $request->integer('brand_id')))
             ->when($request->filled('date_from'), fn (Builder $query): Builder => $query->whereDate('check_in', '>=', $request->string('date_from')))
             ->when($request->filled('date_to'), fn (Builder $query): Builder => $query->whereDate('check_in', '<=', $request->string('date_to')))
             ->latest()
@@ -52,30 +73,30 @@ class BookingController extends Controller
             ->withQueryString();
 
         return view('pages.bookings.index', [
-            'title' => 'Daftar Booking',
+            'title' => 'Daftar Booking - ' . $villa->name,
+            'villa' => $villa,
             'bookings' => $bookings,
-            'brands' => Brand::query()->orderBy('name')->get(),
-            'filters' => $request->only(['q', 'payment_status', 'booking_status', 'brand_id', 'date_from', 'date_to']),
+            'filters' => $request->only(['q', 'payment_status', 'booking_status', 'date_from', 'date_to']),
         ]);
     }
 
-    public function create(): View
+    public function create(Villa $villa): View
     {
         return view('pages.bookings.create', [
-            'title' => 'Buat Booking',
+            'title' => 'Buat Booking - ' . $villa->name,
+            'villa' => $villa,
             'brands' => Brand::query()->orderBy('name')->get(),
-            'villas' => Villa::query()->orderBy('name')->get(),
-            'villaUnits' => VillaUnit::query()->with('villa')->orderBy('unit_name')->get(),
+            'villaUnits' => $villa->units()->orderBy('unit_name')->get(),
             'vouchers' => Voucher::query()->where('is_active', true)->orderBy('code')->get(),
             'addons' => Addon::query()->where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
-    public function store(BookingRequest $request): RedirectResponse
+    public function store(BookingRequest $request, Villa $villa): RedirectResponse
     {
         $data = $request->validated();
 
-        $booking = DB::transaction(function () use ($data): Booking {
+        $booking = DB::transaction(function () use ($data, $request): Booking {
             $villaUnit = VillaUnit::query()->with('seasonalPrices')->findOrFail($data['villa_unit_id']);
             $selectedAddonIds = collect($data['selected_addons'] ?? []);
             $addons = Addon::query()->whereIn('id', $selectedAddonIds)->get();
@@ -116,12 +137,25 @@ class BookingController extends Controller
                 'manual_discount_amount' => (int) ($data['manual_discount_amount'] ?? 0),
                 'manual_discount_reason' => $data['manual_discount_reason'] ?? null,
                 'guest_link_token' => Str::random(40),
+                'booking_status' => 'confirmed',
                 'created_by' => null,
             ]);
 
             foreach ($items as $item) {
                 $booking->items()->create($item);
             }
+
+            // Create DP payment
+            Payment::query()->create([
+                'booking_id' => $booking->id,
+                'amount' => $request->integer('dp_amount'),
+                'payment_method' => $data['payment_method'],
+                'received_by' => $data['received_by'],
+                'note' => $data['payment_note'] ?? 'Down Payment (DP)',
+                'proof_image' => null,
+                'paid_at' => now(),
+                'created_by' => null,
+            ]);
 
             $booking->load(['items', 'payments', 'voucher']);
             $summary = $this->totalsService->summarize($booking, $booking->items, $booking->payments);
@@ -130,7 +164,7 @@ class BookingController extends Controller
             return $booking->fresh(['brand', 'villa', 'villaUnit']);
         });
 
-        return redirect()->route('bookings.show', $booking)->with('success', 'Booking berhasil dibuat dengan kalkulasi item dan total awal.');
+        return redirect()->route('bookings.show', $booking)->with('success', 'Booking berhasil dibuat dengan DP tercatat.');
     }
 
     public function show(Booking $booking): View

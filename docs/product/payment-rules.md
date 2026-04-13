@@ -11,6 +11,17 @@ Payments are separate from booking totals.
 ## Payment Logic
 remaining_balance = grand_total - sum(payments.amount)
 
+## Payment Entry Flow
+- DP (payment pertama) diinput langsung di form create booking (wajib).
+- Cicilan / pelunasan diinput dari halaman detail booking.
+- Tidak ada halaman "Catat Payment" standalone.
+- Payment Ledger (daftar semua payment) tetap tersedia untuk Finance.
+
+## Payment Status
+- `dp` — baru ada 1 pembayaran, belum lunas
+- `cicil` — ada lebih dari 1 pembayaran, belum lunas
+- `lunas` — total bayar >= grand total
+
 ## Supported Methods
 - cash
 - transfer
@@ -22,10 +33,10 @@ remaining_balance = grand_total - sum(payments.amount)
 
 ## Notes
 A booking may receive:
-- DP
-- installment payment
-- final settlement
+- DP (wajib saat create booking)
+- installment payment (cicilan)
+- final settlement (pelunasan)
 - add-on payment
 - extend payment
 
-If new charges are added after a booking was marked fully paid, the booking may become partially unpaid again until the balance is settled.
+If new charges are added after a booking was marked lunas, the booking may become cicil/dp again until the balance is settled.

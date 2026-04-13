@@ -26,6 +26,22 @@ class BookingRequest extends FormRequest
             'manual_discount_reason' => ['nullable', 'string'],
             'selected_addons' => ['nullable', 'array'],
             'selected_addons.*' => ['exists:addons,id'],
+
+            // DP / Payment awal (wajib)
+            'dp_amount' => ['required', 'integer', 'min:1'],
+            'payment_method' => ['required', 'string', 'in:cash,transfer'],
+            'received_by' => ['required', 'string', 'in:finance,office,field_staff'],
+            'payment_note' => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'dp_amount.required' => 'Nominal DP wajib diisi.',
+            'dp_amount.min' => 'Nominal DP minimal Rp 1.',
+            'payment_method.required' => 'Metode pembayaran wajib dipilih.',
+            'received_by.required' => 'Penerima pembayaran wajib dipilih.',
         ];
     }
 

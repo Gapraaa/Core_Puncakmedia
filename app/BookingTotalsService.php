@@ -45,32 +45,38 @@ class BookingTotalsService
         return $grandTotal - $totalPaid;
     }
 
-    public function determinePaymentStatus(int $grandTotal, int $totalPaid): string
+    /**
+     * Payment status:
+     * - dp: baru ada 1 pembayaran dan belum lunas
+     * - cicil: ada lebih dari 1 pembayaran tapi belum lunas
+     * - lunas: total bayar >= grand total
+     */
+    public function determinePaymentStatus(int $grandTotal, int $totalPaid, int $paymentCount): string
     {
-        if ($grandTotal <= 0 || $totalPaid <= 0) {
-            return 'unpaid';
-        }
-
         if ($totalPaid >= $grandTotal) {
-            return 'paid';
+            return 'lunas';
         }
 
-        return 'partial';
+        if ($paymentCount > 1) {
+            return 'cicil';
+        }
+
+        return 'dp';
     }
 
-    public function determineBookingStatus(Booking $booking, Collection $payments): string
+    /**
+     * Booking status:
+     * - confirmed: booking aktif (semua booking yang masuk pasti sudah DP)
+     * - cancelled: booking dibatalkan
+     */
+    public function determineBookingStatus(Booking $booking): string
     {
-        $hasPayment = $payments->isNotEmpty();
-
-        if (! $hasPayment) {
-            return 'draft';
+        // Jika sudah cancelled, tetap cancelled
+        if ($booking->booking_status === 'cancelled') {
+            return 'cancelled';
         }
 
-        if ($booking->payment_status === 'paid') {
-            return 'confirmed';
-        }
-
-        return 'pending_payment';
+        return 'confirmed';
     }
 
     public function summarize(Booking $booking, Collection $bookingItems, Collection $payments): array
@@ -81,7 +87,7 @@ class BookingTotalsService
         $grandTotal = $this->calculateGrandTotal($subtotal, $voucherDiscount, $manualDiscount);
         $totalPaid = $this->calculateTotalPaid($payments);
         $remainingBalance = $this->calculateRemainingBalance($grandTotal, $totalPaid);
-        $paymentStatus = $this->determinePaymentStatus($grandTotal, $totalPaid);
+        $paymentStatus = $this->determinePaymentStatus($grandTotal, $totalPaid, $payments->count());
 
         $booking->payment_status = $paymentStatus;
 
@@ -93,7 +99,7 @@ class BookingTotalsService
             'total_paid' => $totalPaid,
             'remaining_balance' => $remainingBalance,
             'payment_status' => $paymentStatus,
-            'booking_status' => $this->determineBookingStatus($booking, $payments),
+            'booking_status' => $this->determineBookingStatus($booking),
         ];
     }
 }

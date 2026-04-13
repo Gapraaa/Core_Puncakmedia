@@ -19,6 +19,9 @@ class PaymentController extends Controller
     {
     }
 
+    /**
+     * Payment Ledger — read-only list untuk Finance.
+     */
     public function index(Request $request): View
     {
         $payments = Payment::query()
@@ -44,39 +47,34 @@ class PaymentController extends Controller
             ->withQueryString();
 
         return view('pages.payments.index', [
-            'title' => 'Ledger Payment',
+            'title' => 'Daftar Pembayaran',
             'payments' => $payments,
             'filters' => $request->only(['q', 'payment_method', 'received_by']),
         ]);
     }
 
-    public function create(): View
+    /**
+     * Store payment dari halaman detail booking (cicilan / pelunasan).
+     */
+    public function store(PaymentRequest $request, Booking $booking): RedirectResponse
     {
-        return view('pages.payments.create', [
-            'title' => 'Catat Payment',
-            'bookings' => Booking::query()->latest()->get(),
-        ]);
-    }
-
-    public function store(PaymentRequest $request): RedirectResponse
-    {
-        DB::transaction(function () use ($request): void {
-            $payment = Payment::query()->create([
-                'booking_id' => $request->integer('booking_id'),
+        DB::transaction(function () use ($request, $booking): void {
+            Payment::query()->create([
+                'booking_id' => $booking->id,
                 'amount' => $request->integer('amount'),
                 'payment_method' => $request->input('payment_method'),
                 'received_by' => $request->input('received_by'),
                 'note' => $request->input('note'),
                 'proof_image' => $request->input('proof_image'),
-                'paid_at' => Carbon::parse($request->input('paid_at')),
+                'paid_at' => Carbon::parse($request->input('paid_at', now())),
                 'created_by' => null,
             ]);
 
-            $booking = $payment->booking()->with(['items', 'payments', 'voucher'])->firstOrFail();
+            $booking->load(['items', 'payments', 'voucher']);
             $summary = $this->totalsService->summarize($booking, $booking->items, $booking->payments);
             $booking->update($summary);
         });
 
-        return redirect()->route('payments.index')->with('success', 'Payment berhasil dicatat dan saldo booking telah diperbarui.');
+        return redirect()->route('bookings.show', $booking)->with('success', 'Pembayaran berhasil dicatat dan saldo booking diperbarui.');
     }
 }

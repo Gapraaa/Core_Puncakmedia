@@ -20,7 +20,6 @@
                 <x-common.component-card title="Informasi Villa" desc="Detail operasional utama untuk villa ini.">
                     <div class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Slug:</span> {{ $villa->slug }}</div>
-                        <div><span class="font-medium text-gray-800 dark:text-white/90">Kapasitas:</span> {{ $villa->capacity }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Status:</span> {{ $villa->status }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Resort:</span> {{ $villa->is_resort ? 'Ya' : 'Tidak' }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Brand:</span> {{ $villa->brands->pluck('name')->join(', ') ?: 'Belum terhubung' }}</div>

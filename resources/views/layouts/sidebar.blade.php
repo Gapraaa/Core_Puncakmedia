@@ -10,44 +10,58 @@
 <aside id="sidebar"
     class="fixed flex flex-col mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-99999 border-r border-gray-200"
     x-data="{
-        openSubmenus: {},
+        openSubmenus: JSON.parse(localStorage.getItem('sidebar_open_submenus')) || {},
+        saveState() {
+            localStorage.setItem('sidebar_open_submenus', JSON.stringify(this.openSubmenus));
+        },
         init() {
             // Auto-open Dashboard menu on page load
             this.initializeActiveMenus();
         },
         initializeActiveMenus() {
-            const currentPath = '{{ $currentPath }}';
-
+            let changed = false;
             @foreach ($menuGroups as $groupIndex => $menuGroup)
                 @foreach ($menuGroup['items'] as $itemIndex => $item)
                     @if (isset($item['subItems']))
                         // Check if any submenu item matches current path
                         @foreach ($item['subItems'] as $subItem)
-                            if (currentPath === '{{ ltrim($subItem['path'], '/') }}' ||
-                                window.location.pathname === '{{ $subItem['path'] }}') {
-                                this.openSubmenus['{{ $groupIndex }}-{{ $itemIndex }}'] = true;
-                            } @endforeach
-            @endif
+                            if (this.isActive('{{ $subItem['path'] }}')) {
+                                if (!this.openSubmenus['{{ $groupIndex }}-{{ $itemIndex }}']) {
+                                    this.openSubmenus['{{ $groupIndex }}-{{ $itemIndex }}'] = true;
+                                    changed = true;
+                                }
+                            } 
+                        @endforeach
+                    @endif
+                @endforeach
             @endforeach
-            @endforeach
+            if (changed) {
+                this.saveState();
+            }
         },
         toggleSubmenu(groupIndex, itemIndex) {
             const key = groupIndex + '-' + itemIndex;
-            const newState = !this.openSubmenus[key];
-
-            // Close all other submenus when opening a new one
-            if (newState) {
-                this.openSubmenus = {};
-            }
-
-            this.openSubmenus[key] = newState;
+            this.openSubmenus[key] = !this.openSubmenus[key];
+            this.saveState();
         },
         isSubmenuOpen(groupIndex, itemIndex) {
             const key = groupIndex + '-' + itemIndex;
             return this.openSubmenus[key] || false;
         },
         isActive(path) {
-            return window.location.pathname === path || '{{ $currentPath }}' === path.replace(/^\//, '');
+            try {
+                const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+                const targetUrl = new URL(path, window.location.origin);
+                const targetPath = targetUrl.pathname.replace(/\/$/, '') || '/';
+                
+                if (targetPath === '/') {
+                    return currentPath === '/';
+                }
+                
+                return currentPath === targetPath || currentPath.startsWith(targetPath + '/');
+            } catch (e) {
+                return false;
+            }
         }
     }"
     :class="{
@@ -217,10 +231,7 @@
             </div>
         </nav>
 
-        <!-- Sidebar Widget -->
-        <div x-data x-show="$store.sidebar.isExpanded || $store.sidebar.isHovered || $store.sidebar.isMobileOpen" x-transition class="mt-auto">
-            @include('layouts.sidebar-widget')
-        </div>
+
 
     </div>
 </aside>

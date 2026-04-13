@@ -15,13 +15,22 @@ class PaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'booking_id' => ['required', 'exists:bookings,id'],
             'amount' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', Rule::in(['cash', 'transfer'])],
             'received_by' => ['required', 'string', Rule::in(['finance', 'office', 'field_staff'])],
             'note' => ['nullable', 'string'],
             'proof_image' => ['nullable', 'string', 'max:255'],
-            'paid_at' => ['required', 'date'],
+            'paid_at' => ['nullable', 'date'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'amount.required' => 'Nominal pembayaran wajib diisi.',
+            'amount.min' => 'Nominal pembayaran minimal Rp 1.',
+            'payment_method.required' => 'Metode pembayaran wajib dipilih.',
+            'received_by.required' => 'Penerima pembayaran wajib dipilih.',
         ];
     }
 }

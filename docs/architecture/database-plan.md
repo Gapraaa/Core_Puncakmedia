@@ -17,7 +17,6 @@ Use **MySQL**.
 - name
 - slug
 - logo
-- bank_info
 - created_at
 - updated_at
 
@@ -27,7 +26,6 @@ Use **MySQL**.
 - slug
 - location
 - description
-- capacity
 - is_resort
 - status
 - rules
@@ -115,8 +113,8 @@ Use **MySQL**.
 - grand_total
 - total_paid
 - remaining_balance
-- payment_status
-- booking_status
+- payment_status (dp, cicil, lunas)
+- booking_status (confirmed, cancelled)
 - guest_link_token
 - created_by
 - created_at
@@ -153,3 +151,6 @@ Use **MySQL**.
 - `payments` is required for flexible cash / transfer tracking.
 - `remaining_balance` should always be derived from booking total and payment total.
 - All listed price and amount fields above should be implemented as integer Rupiah columns.
+- `capacity` hanya ada di `villa_units`, bukan di `villas`.
+- Villa biasa (`is_resort=false`) otomatis memiliki 1 unit.
+- Setiap booking wajib memiliki minimal 1 payment (DP).

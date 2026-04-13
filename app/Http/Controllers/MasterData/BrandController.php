@@ -22,8 +22,7 @@ class BrandController extends Controller
                 $query->where(function (Builder $innerQuery) use ($keyword): void {
                     $innerQuery
                         ->where('name', 'like', "%{$keyword}%")
-                        ->orWhere('slug', 'like', "%{$keyword}%")
-                        ->orWhere('bank_info', 'like', "%{$keyword}%");
+                        ->orWhere('slug', 'like', "%{$keyword}%");
                 });
             })
             ->latest()

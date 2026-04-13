@@ -21,7 +21,7 @@ class MenuHelper
                         'subItems' => [
                             ['name' => 'Brand', 'path' => route('brands.index')],
                             ['name' => 'Villa', 'path' => route('villas.index')],
-                            ['name' => 'Villa Units', 'path' => route('villa-units.index')],
+                            ['name' => 'Unit Resort', 'path' => route('villa-units.index')],
                             ['name' => 'Harga Musiman', 'path' => route('seasonal-prices.index')],
                             ['name' => 'Add-ons', 'path' => route('addons.index')],
                             ['name' => 'Voucher', 'path' => route('vouchers.index')],
@@ -30,18 +30,12 @@ class MenuHelper
                     [
                         'icon' => 'tables',
                         'name' => 'Booking',
-                        'subItems' => [
-                            ['name' => 'Daftar Booking', 'path' => route('bookings.index')],
-                            ['name' => 'Buat Booking', 'path' => route('bookings.create')],
-                        ],
+                        'path' => route('bookings.index')
                     ],
                     [
                         'icon' => 'forms',
-                        'name' => 'Payment',
-                        'subItems' => [
-                            ['name' => 'Ledger Payment', 'path' => route('payments.index')],
-                            ['name' => 'Catat Payment', 'path' => route('payments.create')],
-                        ],
+                        'name' => 'Daftar Pembayaran',
+                        'path' => route('payments.index'),
                     ],
                 ],
             ],

@@ -15,7 +15,6 @@ class Brand extends Model
         'name',
         'slug',
         'logo',
-        'bank_info',
     ];
 
     public function villas(): BelongsToMany

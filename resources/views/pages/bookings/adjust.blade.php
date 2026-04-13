@@ -4,14 +4,14 @@
     <x-common.page-breadcrumb pageTitle="Penyesuaian Booking" />
 
     <x-common.component-card title="Penyesuaian Booking" desc="Tambahkan add-on baru atau extend booking tanpa membuat booking baru.">
-        <form method="POST" action="{{ route('bookings.adjustments.store', $booking) }}" class="space-y-6">
+        <form x-data="{ checkout: '{{ $booking->check_out->format('Y-m-d') }}' }" method="POST" action="{{ route('bookings.adjustments.store', $booking) }}" class="space-y-6">
             @csrf
             <div class="rounded-xl border border-gray-100 px-4 py-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-300">
                 Booking: <span class="font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}</span> | {{ $booking->guest_name }} | {{ $booking->villa?->name }} - {{ $booking->villaUnit?->unit_name }}
             </div>
             <div>
                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Extend Check-out</label>
-                <input type="date" name="extend_check_out" value="{{ old('extend_check_out') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                <input :min="checkout" onclick="this.showPicker()" type="date" name="extend_check_out" value="{{ old('extend_check_out') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
                 @error('extend_check_out')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
             </div>
             <div>

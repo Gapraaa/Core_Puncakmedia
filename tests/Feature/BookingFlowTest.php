@@ -33,7 +33,6 @@ function createMasterData(): array
         'name' => 'Villa Melati ' . $suffix,
         'slug' => 'villa-melati-' . $suffix,
         'location' => 'Puncak',
-        'capacity' => 10,
         'is_resort' => false,
         'status' => 'active',
     ]);
@@ -99,27 +98,34 @@ function createBookingPayload(array $data, array $overrides = []): array
         'manual_discount_amount' => 15000,
         'manual_discount_reason' => 'Promo admin sales',
         'selected_addons' => [$data['perNightAddon']->id],
+        // DP wajib
+        'dp_amount' => 200000,
+        'payment_method' => 'transfer',
+        'received_by' => 'finance',
+        'payment_note' => 'DP booking test',
     ], $overrides);
 }
 
-test('booking creation calculates mixed nightly pricing in rupiah integers', function () {
+test('booking creation includes DP and sets confirmed + dp status', function () {
     $data = createMasterData();
 
     post(route('bookings.store'), createBookingPayload($data))
         ->assertRedirect();
 
-    $booking = Booking::query()->with(['items', 'voucher'])->latest('id')->first();
+    $booking = Booking::query()->with(['items', 'payments', 'voucher'])->latest('id')->first();
 
     expect($booking)->not->toBeNull();
-    expect($booking->items)->toHaveCount(4);
+    expect($booking->items)->toHaveCount(4); // 3 nights + 1 addon
     expect($booking->total_before_discount)->toBe(530000);
     expect($booking->voucher_discount_amount)->toBe(20000);
     expect($booking->manual_discount_amount)->toBe(15000);
     expect($booking->grand_total)->toBe(495000);
-    expect($booking->total_paid)->toBe(0);
-    expect($booking->remaining_balance)->toBe(495000);
-    expect($booking->payment_status)->toBe('unpaid');
-    expect($booking->booking_status)->toBe('draft');
+    expect($booking->total_paid)->toBe(200000);
+    expect($booking->remaining_balance)->toBe(295000);
+    expect($booking->payment_status)->toBe('dp');
+    expect($booking->booking_status)->toBe('confirmed');
+    expect($booking->payments)->toHaveCount(1);
+    expect($booking->payments->first()->amount)->toBe(200000);
 
     $nightPrices = $booking->items
         ->where('item_type', 'night')
@@ -130,6 +136,18 @@ test('booking creation calculates mixed nightly pricing in rupiah integers', fun
 
     expect($nightPrices)->toBe([100000, 150000, 250000]);
     expect($booking->items->where('item_type', 'addon')->first()?->unit_price)->toBe(10000);
+});
+
+test('booking creation without DP is rejected', function () {
+    $data = createMasterData();
+    $initialBookingCount = Booking::query()->count();
+
+    post(route('bookings.store'), createBookingPayload($data, [
+        'dp_amount' => '',
+    ]))
+        ->assertSessionHasErrors(['dp_amount']);
+
+    expect(Booking::query()->count())->toBe($initialBookingCount);
 });
 
 test('manual discount requires a reason', function () {
@@ -144,53 +162,55 @@ test('manual discount requires a reason', function () {
     expect(Booking::query()->count())->toBe($initialBookingCount);
 });
 
-test('payment updates booking totals and confirms fully paid bookings', function () {
+test('additional payment from booking detail updates status to cicil then lunas', function () {
     $data = createMasterData();
 
     post(route('bookings.store'), createBookingPayload($data))->assertRedirect();
 
     $booking = Booking::query()->latest('id')->firstOrFail();
-    $initialPaymentCount = Payment::query()->count();
+    expect($booking->payment_status)->toBe('dp');
 
-    post(route('payments.store'), [
-        'booking_id' => $booking->id,
-        'amount' => 495000,
+    // Cicilan pertama
+    post(route('bookings.payments.store', $booking), [
+        'amount' => 100000,
+        'payment_method' => 'cash',
+        'received_by' => 'office',
+        'note' => 'Cicilan 1',
+    ])->assertRedirect();
+
+    $booking->refresh();
+    expect($booking->payment_status)->toBe('cicil');
+    expect($booking->total_paid)->toBe(300000);
+    expect($booking->remaining_balance)->toBe(195000);
+
+    // Pelunasan
+    post(route('bookings.payments.store', $booking), [
+        'amount' => 195000,
         'payment_method' => 'transfer',
         'received_by' => 'finance',
         'note' => 'Pelunasan',
-        'proof_image' => 'bukti/transfer.jpg',
-        'paid_at' => now()->format('Y-m-d H:i:s'),
     ])->assertRedirect();
 
     $booking->refresh();
-
-    expect(Payment::query()->count())->toBe($initialPaymentCount + 1);
+    expect($booking->payment_status)->toBe('lunas');
     expect($booking->total_paid)->toBe(495000);
     expect($booking->remaining_balance)->toBe(0);
-    expect($booking->payment_status)->toBe('paid');
     expect($booking->booking_status)->toBe('confirmed');
 });
 
-test('booking adjustment can make a paid booking partial again', function () {
+test('booking adjustment can make a lunas booking cicil again', function () {
     $data = createMasterData();
 
-    post(route('bookings.store'), createBookingPayload($data))->assertRedirect();
+    // Create with full payment as DP
+    post(route('bookings.store'), createBookingPayload($data, [
+        'dp_amount' => 495000,
+    ]))->assertRedirect();
 
     $booking = Booking::query()->latest('id')->firstOrFail();
-
-    post(route('payments.store'), [
-        'booking_id' => $booking->id,
-        'amount' => 495000,
-        'payment_method' => 'cash',
-        'received_by' => 'office',
-        'note' => 'Lunas awal',
-        'paid_at' => now()->format('Y-m-d H:i:s'),
-    ])->assertRedirect();
-
-    $booking->refresh();
-    expect($booking->payment_status)->toBe('paid');
+    expect($booking->payment_status)->toBe('lunas');
     expect($booking->booking_status)->toBe('confirmed');
 
+    // Add adjustment (add-on)
     post(route('bookings.adjustments.store', $booking), [
         'extend_check_out' => null,
         'selected_addons' => [$data['perStayAddon']->id],
@@ -202,7 +222,7 @@ test('booking adjustment can make a paid booking partial again', function () {
     expect($booking->grand_total)->toBe(515000);
     expect($booking->total_paid)->toBe(495000);
     expect($booking->remaining_balance)->toBe(20000);
-    expect($booking->payment_status)->toBe('partial');
-    expect($booking->booking_status)->toBe('pending_payment');
+    expect($booking->payment_status)->toBe('dp'); // 1 payment, not fully paid
+    expect($booking->booking_status)->toBe('confirmed');
     expect($booking->items()->where('item_type', 'addon_adjustment')->count())->toBe(1);
 });

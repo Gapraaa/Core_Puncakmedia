@@ -20,7 +20,6 @@ class BrandRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('brands', 'slug')->ignore($brandId)],
             'logo' => ['nullable', 'string', 'max:255'],
-            'bank_info' => ['nullable', 'string'],
         ];
     }
 }

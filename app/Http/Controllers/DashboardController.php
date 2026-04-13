@@ -29,9 +29,9 @@ class DashboardController extends Controller
             'upcomingCheckInsCount' => Booking::query()->whereDate('check_in', '>=', $today)->count(),
             'totalOutstanding' => (int) Booking::query()->sum('remaining_balance'),
             'paymentStatusCounts' => [
-                'unpaid' => (int) ($paymentStatusCounts['unpaid'] ?? 0),
-                'partial' => (int) ($paymentStatusCounts['partial'] ?? 0),
-                'paid' => (int) ($paymentStatusCounts['paid'] ?? 0),
+                'dp' => (int) ($paymentStatusCounts['dp'] ?? 0),
+                'cicil' => (int) ($paymentStatusCounts['cicil'] ?? 0),
+                'lunas' => (int) ($paymentStatusCounts['lunas'] ?? 0),
             ],
             'upcomingCheckIns' => Booking::query()
                 ->with(['brand', 'villa', 'villaUnit'])

@@ -16,7 +16,6 @@ class Villa extends Model
         'slug',
         'location',
         'description',
-        'capacity',
         'is_resort',
         'status',
         'rules',

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\MasterData;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VillaRequest;
+use App\Models\Brand;
 use App\Models\Villa;
+use App\Models\VillaUnit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -16,6 +19,7 @@ class VillaController extends Controller
     public function index(Request $request): View
     {
         $villas = Villa::query()
+            ->with(['brands'])
             ->withCount(['units', 'bookings'])
             ->when($request->filled('q'), function (Builder $query) use ($request): void {
                 $keyword = trim((string) $request->string('q'));
@@ -43,6 +47,8 @@ class VillaController extends Controller
         return view('pages.villas.create', [
             'title' => 'Buat Villa',
             'villa' => new Villa(['status' => 'draft']),
+            'villaUnit' => new VillaUnit(),
+            'brands' => Brand::query()->orderBy('name')->get(),
         ]);
     }
 
@@ -56,22 +62,70 @@ class VillaController extends Controller
 
     public function store(VillaRequest $request): RedirectResponse
     {
-        Villa::query()->create($this->validatedData($request));
+        DB::transaction(function () use ($request): void {
+            $villa = Villa::query()->create($this->validatedData($request));
+            if ($request->has('brand_ids')) {
+                $villa->brands()->sync($request->input('brand_ids'));
+            }
+
+            // Villa biasa: auto-create 1 unit
+            if (! $request->boolean('is_resort')) {
+                $villa->units()->create([
+                    'unit_name' => $villa->name,
+                    'unit_type' => 'private',
+                    'capacity' => $request->integer('unit_capacity'),
+                    'price_weekday' => $request->integer('price_weekday'),
+                    'price_semi_weekend' => $request->integer('price_semi_weekend'),
+                    'price_weekend' => $request->integer('price_weekend'),
+                    'status' => 'active',
+                ]);
+            }
+        });
 
         return redirect()->route('villas.index')->with('success', 'Villa berhasil dibuat.');
     }
 
     public function edit(Villa $villa): View
     {
+        // Load unit pertama untuk villa biasa
+        $villaUnit = $villa->is_resort ? new VillaUnit() : ($villa->units()->first() ?? new VillaUnit());
+
         return view('pages.villas.edit', [
             'title' => 'Edit Villa',
             'villa' => $villa,
+            'villaUnit' => $villaUnit,
+            'brands' => Brand::query()->orderBy('name')->get(),
+            'selectedBrands' => $villa->brands()->pluck('brands.id')->toArray(),
         ]);
     }
 
     public function update(VillaRequest $request, Villa $villa): RedirectResponse
     {
-        $villa->update($this->validatedData($request));
+        DB::transaction(function () use ($request, $villa): void {
+            $villa->update($this->validatedData($request));
+            $villa->brands()->sync($request->input('brand_ids', []));
+
+            // Villa biasa: sync unit pertama
+            if (! $request->boolean('is_resort')) {
+                $unit = $villa->units()->first();
+
+                $unitData = [
+                    'unit_name' => $villa->name,
+                    'unit_type' => 'private',
+                    'capacity' => $request->integer('unit_capacity'),
+                    'price_weekday' => $request->integer('price_weekday'),
+                    'price_semi_weekend' => $request->integer('price_semi_weekend'),
+                    'price_weekend' => $request->integer('price_weekend'),
+                    'status' => 'active',
+                ];
+
+                if ($unit) {
+                    $unit->update($unitData);
+                } else {
+                    $villa->units()->create($unitData);
+                }
+            }
+        });
 
         return redirect()->route('villas.index')->with('success', 'Villa berhasil diperbarui.');
     }
@@ -88,6 +142,9 @@ class VillaController extends Controller
         $data = $request->validated();
         $data['slug'] = Str::slug($data['slug'] ?: $data['name']);
         $data['is_resort'] = $request->boolean('is_resort');
+
+        // Remove unit fields and relation fields from villa data
+        unset($data['unit_capacity'], $data['price_weekday'], $data['price_semi_weekend'], $data['price_weekend'], $data['brand_ids']);
 
         return $data;
     }

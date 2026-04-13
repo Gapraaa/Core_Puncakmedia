@@ -17,6 +17,7 @@ class VillaUnitController extends Controller
     {
         $villaUnits = VillaUnit::query()
             ->with('villa')
+            ->whereHas('villa', fn (Builder $q) => $q->where('is_resort', true))
             ->withCount(['seasonalPrices', 'bookings'])
             ->when($request->filled('q'), function (Builder $query) use ($request): void {
                 $keyword = trim((string) $request->string('q'));
@@ -36,9 +37,9 @@ class VillaUnitController extends Controller
             ->withQueryString();
 
         return view('pages.villa-units.index', [
-            'title' => 'Villa Unit',
+            'title' => 'Unit Resort',
             'villaUnits' => $villaUnits,
-            'villas' => Villa::query()->orderBy('name')->get(),
+            'villas' => Villa::query()->where('is_resort', true)->orderBy('name')->get(),
             'filters' => $request->only(['q', 'villa_id', 'status']),
         ]);
     }
@@ -46,16 +47,16 @@ class VillaUnitController extends Controller
     public function create(): View
     {
         return view('pages.villa-units.create', [
-            'title' => 'Buat Villa Unit',
+            'title' => 'Buat Unit Resort',
             'villaUnit' => new VillaUnit(['status' => 'active']),
-            'villas' => Villa::query()->orderBy('name')->get(),
+            'villas' => Villa::query()->where('is_resort', true)->orderBy('name')->get(),
         ]);
     }
 
     public function show(VillaUnit $villaUnit): View
     {
         return view('pages.villa-units.show', [
-            'title' => 'Detail Villa Unit',
+            'title' => 'Detail Unit Resort',
             'villaUnit' => $villaUnit->load(['villa', 'seasonalPrices' => fn ($query) => $query->latest()->limit(10), 'bookings' => fn ($query) => $query->latest()->limit(5)]),
         ]);
     }
@@ -64,15 +65,15 @@ class VillaUnitController extends Controller
     {
         VillaUnit::query()->create($request->validated());
 
-        return redirect()->route('villa-units.index')->with('success', 'Villa unit berhasil dibuat.');
+        return redirect()->route('villa-units.index')->with('success', 'Unit Resort berhasil dibuat.');
     }
 
     public function edit(VillaUnit $villaUnit): View
     {
         return view('pages.villa-units.edit', [
-            'title' => 'Edit Villa Unit',
+            'title' => 'Edit Unit Resort',
             'villaUnit' => $villaUnit,
-            'villas' => Villa::query()->orderBy('name')->get(),
+            'villas' => Villa::query()->where('is_resort', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -80,13 +81,13 @@ class VillaUnitController extends Controller
     {
         $villaUnit->update($request->validated());
 
-        return redirect()->route('villa-units.index')->with('success', 'Villa unit berhasil diperbarui.');
+        return redirect()->route('villa-units.index')->with('success', 'Unit Resort berhasil diperbarui.');
     }
 
     public function destroy(VillaUnit $villaUnit): RedirectResponse
     {
         $villaUnit->delete();
 
-        return redirect()->route('villa-units.index')->with('success', 'Villa unit berhasil dihapus.');
+        return redirect()->route('villa-units.index')->with('success', 'Unit Resort berhasil dihapus.');
     }
 }

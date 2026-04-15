@@ -22,7 +22,7 @@ class MenuHelper
                             ['name' => 'Brand', 'path' => route('brands.index')],
                             ['name' => 'Villa', 'path' => route('villas.index')],
                             ['name' => 'Unit Resort', 'path' => route('villa-units.index')],
-                            ['name' => 'Harga Musiman', 'path' => route('seasonal-prices.index')],
+                            ['name' => 'Harga High Season', 'path' => route('seasonal-prices.index')],
                             ['name' => 'Add-ons', 'path' => route('addons.index')],
                             ['name' => 'Voucher', 'path' => route('vouchers.index')],
                         ],
@@ -31,6 +31,11 @@ class MenuHelper
                         'icon' => 'tables',
                         'name' => 'Booking',
                         'path' => route('bookings.index')
+                    ],
+                    [
+                        'icon' => 'pages',
+                        'name' => 'Invoice',
+                        'path' => route('invoices.index'),
                     ],
                     [
                         'icon' => 'forms',

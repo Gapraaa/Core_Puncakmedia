@@ -6,12 +6,22 @@
                 @isset($httpMethod) @method($httpMethod) @endisset
                 <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Villa</label>
-                    <select name="villa_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
-                        <option value="">Pilih villa</option>
-                        @foreach ($villas as $villa)
-                            <option value="{{ $villa->id }}" @selected((string) old('villa_id', $villaUnit->villa_id) === (string) $villa->id)>{{ $villa->name }}</option>
-                        @endforeach
-                    </select>
+                    @if (!empty($selectedVilla))
+                        <input type="hidden" name="villa_id" value="{{ old('villa_id', $selectedVilla->id) }}">
+                        <div class="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200">
+                            {{ $selectedVilla->name }}
+                            @if ($selectedVilla->location)
+                                <span class="text-gray-500 dark:text-gray-400">• {{ $selectedVilla->location }}</span>
+                            @endif
+                        </div>
+                    @else
+                        <select name="villa_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                            <option value="">Pilih villa</option>
+                            @foreach ($villas as $villa)
+                                <option value="{{ $villa->id }}" @selected((string) old('villa_id', $villaUnit->villa_id) === (string) $villa->id)>{{ $villa->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                     @error('villa_id')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                 </div>
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -39,12 +49,12 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Weekday (Rupiah)</label><input type="number" step="1" min="0" name="price_weekday" value="{{ old('price_weekday', $villaUnit->price_weekday ?? 0) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Semi Weekend (Rupiah)</label><input type="number" step="1" min="0" name="price_semi_weekend" value="{{ old('price_semi_weekend', $villaUnit->price_semi_weekend ?? 0) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Weekend (Rupiah)</label><input type="number" step="1" min="0" name="price_weekend" value="{{ old('price_weekend', $villaUnit->price_weekend ?? 0) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Weekday (Rupiah)</label><input type="number" step="1" min="0" name="price_weekday" value="{{ old('price_weekday', $villaUnit->price_weekday ?? 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Semi Weekend (Rupiah)</label><input type="number" step="1" min="0" name="price_semi_weekend" value="{{ old('price_semi_weekend', $villaUnit->price_semi_weekend ?? 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Weekend (Rupiah)</label><input type="number" step="1" min="0" name="price_weekend" value="{{ old('price_weekend', $villaUnit->price_weekend ?? 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
                 </div>
                 <div class="flex items-center justify-end gap-3">
-                    <a href="{{ route('villa-units.index') }}" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Batal</a>
+                    <a href="{{ !empty($selectedVilla) ? route('villa-units.list', $selectedVilla) : route('villa-units.index') }}" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Batal</a>
                     <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">{{ $submitLabel }}</button>
                 </div>
             </form>

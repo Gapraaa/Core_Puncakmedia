@@ -304,6 +304,15 @@
 }
 @layer utilities {
   /* For Remove Date Icon */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
   input[type='date']::-webkit-inner-spin-button,
   input[type='time']::-webkit-inner-spin-button,
   input[type='date']::-webkit-calendar-picker-indicator,

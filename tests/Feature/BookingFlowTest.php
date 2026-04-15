@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\Addon;
+use App\Models\AddonOption;
 use App\Models\Booking;
 use App\Models\Brand;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\SeasonalPrice;
 use App\Models\Villa;
@@ -72,6 +74,26 @@ function createMasterData(): array
         'is_active' => true,
     ]);
 
+    $extraBedOption = AddonOption::query()->create([
+        'addon_id' => $perNightAddon->id,
+        'name' => 'Extra Bed Reguler ' . $suffix,
+        'price' => 15000,
+        'charge_basis' => 'per_item_per_night',
+        'unit_label' => 'pcs',
+        'sort_order' => 1,
+        'is_active' => true,
+    ]);
+
+    $grillOption = AddonOption::query()->create([
+        'addon_id' => $perStayAddon->id,
+        'name' => 'Grill Paket B ' . $suffix,
+        'price' => 50000,
+        'charge_basis' => 'per_item',
+        'unit_label' => 'paket',
+        'sort_order' => 1,
+        'is_active' => true,
+    ]);
+
     $voucher = Voucher::query()->create([
         'code' => 'HEMAT-' . Str::upper($suffix),
         'discount_type' => 'fixed',
@@ -81,7 +103,7 @@ function createMasterData(): array
         'is_active' => true,
     ]);
 
-    return compact('brand', 'villa', 'villaUnit', 'voucher', 'perNightAddon', 'perStayAddon');
+    return compact('brand', 'villa', 'villaUnit', 'voucher', 'perNightAddon', 'perStayAddon', 'extraBedOption', 'grillOption');
 }
 
 function createBookingPayload(array $data, array $overrides = []): array
@@ -109,7 +131,7 @@ function createBookingPayload(array $data, array $overrides = []): array
 test('booking creation includes DP and sets confirmed + dp status', function () {
     $data = createMasterData();
 
-    post(route('bookings.store'), createBookingPayload($data))
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))
         ->assertRedirect();
 
     $booking = Booking::query()->with(['items', 'payments', 'voucher'])->latest('id')->first();
@@ -126,6 +148,9 @@ test('booking creation includes DP and sets confirmed + dp status', function () 
     expect($booking->booking_status)->toBe('confirmed');
     expect($booking->payments)->toHaveCount(1);
     expect($booking->payments->first()->amount)->toBe(200000);
+    expect($booking->invoices()->count())->toBe(1);
+    expect($booking->payments->first()->invoice_id)->not->toBeNull();
+    expect($booking->invoices()->first()?->label)->toBe('INVOICE UTAMA');
 
     $nightPrices = $booking->items
         ->where('item_type', 'night')
@@ -138,12 +163,56 @@ test('booking creation includes DP and sets confirmed + dp status', function () 
     expect($booking->items->where('item_type', 'addon')->first()?->unit_price)->toBe(10000);
 });
 
+test('booking creation supports addon options with quantity-based pricing', function () {
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
+        'selected_addons' => [],
+        'selected_addon_choices' => [
+            'option:' . $data['extraBedOption']->id,
+            'option:' . $data['grillOption']->id,
+        ],
+        'addon_choice_quantities' => [
+            'option:' . $data['extraBedOption']->id => 2,
+            'option:' . $data['grillOption']->id => 1,
+        ],
+    ]))->assertRedirect();
+
+    $booking = Booking::query()->with(['items', 'payments', 'voucher'])->latest('id')->firstOrFail();
+
+    expect($booking->items)->toHaveCount(5); // 3 nights + 2 addon items
+    expect($booking->total_before_discount)->toBe(640000); // 500000 + (15000*2*3) + 50000
+    expect($booking->grand_total)->toBe(605000);
+
+    $addonItems = $booking->items->where('item_type', 'addon')->values();
+
+    expect($addonItems)->toHaveCount(2);
+    expect($addonItems->pluck('item_name')->all())->toBe([
+        $data['perNightAddon']->name . ' - ' . $data['extraBedOption']->name,
+        $data['perStayAddon']->name . ' - ' . $data['grillOption']->name,
+    ]);
+    expect($addonItems->pluck('quantity')->all())->toBe([6, 1]);
+    expect($addonItems->pluck('total_price')->all())->toBe([90000, 50000]);
+});
+
 test('booking creation without DP is rejected', function () {
     $data = createMasterData();
     $initialBookingCount = Booking::query()->count();
 
-    post(route('bookings.store'), createBookingPayload($data, [
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
         'dp_amount' => '',
+    ]))
+        ->assertSessionHasErrors(['dp_amount']);
+
+    expect(Booking::query()->count())->toBe($initialBookingCount);
+});
+
+test('booking creation rejects DP greater than grand total', function () {
+    $data = createMasterData();
+    $initialBookingCount = Booking::query()->count();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
+        'dp_amount' => 999999999,
     ]))
         ->assertSessionHasErrors(['dp_amount']);
 
@@ -154,7 +223,7 @@ test('manual discount requires a reason', function () {
     $data = createMasterData();
     $initialBookingCount = Booking::query()->count();
 
-    post(route('bookings.store'), createBookingPayload($data, [
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
         'manual_discount_reason' => '',
     ]))
         ->assertSessionHasErrors(['manual_discount_reason']);
@@ -165,7 +234,7 @@ test('manual discount requires a reason', function () {
 test('additional payment from booking detail updates status to cicil then lunas', function () {
     $data = createMasterData();
 
-    post(route('bookings.store'), createBookingPayload($data))->assertRedirect();
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))->assertRedirect();
 
     $booking = Booking::query()->latest('id')->firstOrFail();
     expect($booking->payment_status)->toBe('dp');
@@ -198,11 +267,30 @@ test('additional payment from booking detail updates status to cicil then lunas'
     expect($booking->booking_status)->toBe('confirmed');
 });
 
+test('additional payment cannot exceed remaining balance', function () {
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))->assertRedirect();
+
+    $booking = Booking::query()->latest('id')->firstOrFail();
+
+    post(route('bookings.payments.store', $booking), [
+        'amount' => 999999999,
+        'payment_method' => 'cash',
+        'received_by' => 'office',
+        'note' => 'Overpayment',
+    ])->assertSessionHasErrors(['amount']);
+
+    $booking->refresh();
+    expect($booking->total_paid)->toBe(200000);
+    expect($booking->remaining_balance)->toBe(295000);
+});
+
 test('booking adjustment can make a lunas booking cicil again', function () {
     $data = createMasterData();
 
     // Create with full payment as DP
-    post(route('bookings.store'), createBookingPayload($data, [
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
         'dp_amount' => 495000,
     ]))->assertRedirect();
 
@@ -225,4 +313,89 @@ test('booking adjustment can make a lunas booking cicil again', function () {
     expect($booking->payment_status)->toBe('dp'); // 1 payment, not fully paid
     expect($booking->booking_status)->toBe('confirmed');
     expect($booking->items()->where('item_type', 'addon_adjustment')->count())->toBe(1);
+});
+
+test('booking items can be split into a separate invoice while booking total stays intact', function () {
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))->assertRedirect();
+
+    $booking = Booking::query()->with('items', 'invoices')->latest('id')->firstOrFail();
+    $addonItem = $booking->items()->where('item_type', 'addon')->firstOrFail();
+
+    post(route('bookings.invoices.split', $booking), [
+        'label' => 'Invoice Add-on',
+        'item_ids' => [$addonItem->id],
+    ])->assertRedirect(route('bookings.show', $booking));
+
+    $booking->refresh();
+    $booking->load(['items', 'payments', 'voucher', 'invoices.items', 'invoices.payments']);
+
+    expect($booking->invoices)->toHaveCount(2);
+
+    $splitInvoice = $booking->invoices->firstWhere('label', 'Invoice Add-on');
+    if (! $splitInvoice) {
+        $splitInvoice = $booking->invoices->firstWhere('label', 'INVOICE ADD-ON');
+    }
+    expect($splitInvoice)->not->toBeNull();
+    expect($splitInvoice->label)->toBe('INVOICE ADD-ON');
+    expect($splitInvoice->items)->toHaveCount(1);
+    expect($splitInvoice->subtotal)->toBe($addonItem->total_price);
+
+    expect($booking->grand_total)->toBe(495000);
+    expect($booking->total_paid)->toBe(200000);
+    expect($booking->remaining_balance)->toBe(295000);
+});
+
+test('invoice and payment receipt documents can be opened', function () {
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))->assertRedirect();
+
+    $booking = Booking::query()->with(['invoices', 'payments'])->latest('id')->firstOrFail();
+    $invoice = $booking->invoices()->oldest()->firstOrFail();
+    $payment = $booking->payments()->oldest('id')->firstOrFail();
+
+    $invoicePreviewResponse = $this->get(route('documents.invoices.show', $invoice));
+    $invoicePreviewResponse->assertOk();
+    expect($invoicePreviewResponse->headers->get('content-type'))->toContain('application/pdf');
+
+    $invoiceDownloadResponse = $this->get(route('documents.invoices.show', ['invoice' => $invoice, 'download' => 1]));
+    $invoiceDownloadResponse->assertOk();
+    expect($invoiceDownloadResponse->headers->get('content-type'))->toContain('application/pdf');
+    expect($invoiceDownloadResponse->headers->get('content-disposition'))->toContain('attachment');
+    expect($invoiceDownloadResponse->headers->get('content-disposition'))->toContain(strtoupper('invoice-' . $invoice->invoice_number . '.pdf'));
+
+    $receiptPreviewResponse = $this->get(route('documents.payments.receipt', $payment));
+    $receiptPreviewResponse->assertOk();
+    expect($receiptPreviewResponse->headers->get('content-type'))->toContain('application/pdf');
+
+    $receiptDownloadResponse = $this->get(route('documents.payments.receipt', ['payment' => $payment, 'download' => 1]));
+    $receiptDownloadResponse->assertOk();
+    expect($receiptDownloadResponse->headers->get('content-type'))->toContain('application/pdf');
+    expect($receiptDownloadResponse->headers->get('content-disposition'))->toContain('attachment');
+    expect($receiptDownloadResponse->headers->get('content-disposition'))->toContain(strtoupper('bukti-pembayaran-' . ($payment->invoice?->invoice_number ?? $payment->id) . '.pdf'));
+});
+
+test('invoice module pages can be opened from villa to detail invoice', function () {
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))->assertRedirect();
+
+    $booking = Booking::query()->with(['invoices'])->latest('id')->firstOrFail();
+    $invoice = $booking->invoices()->oldest()->firstOrFail();
+
+    $this->get(route('invoices.index'))
+        ->assertOk()
+        ->assertSee('Katalog Invoice per Villa', false);
+
+    $this->get(route('invoices.villa', $data['villa']))
+        ->assertOk()
+        ->assertSee('Daftar Invoice', false)
+        ->assertSee($invoice->invoice_number, false);
+
+    $this->get(route('invoices.show', $invoice))
+        ->assertOk()
+        ->assertSee($invoice->invoice_number, false)
+        ->assertSee('Riwayat Pembayaran', false);
 });

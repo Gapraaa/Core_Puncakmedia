@@ -18,14 +18,22 @@ class BookingRequest extends FormRequest
             'villa_id' => ['required', 'exists:villas,id'],
             'villa_unit_id' => ['required', 'exists:villa_units,id'],
             'guest_name' => ['required', 'string', 'max:255'],
-            'guest_phone' => ['required', 'string', 'max:255'],
+            'guest_phone' => ['required', 'string', 'regex:/^[0-9]+$/', 'min:8', 'max:20'],
             'check_in' => ['required', 'date'],
             'check_out' => ['required', 'date', 'after:check_in'],
             'voucher_id' => ['nullable', 'exists:vouchers,id'],
             'manual_discount_amount' => ['nullable', 'integer', 'min:0'],
             'manual_discount_reason' => ['nullable', 'string'],
+            'markup_amount' => ['nullable', 'integer', 'min:0'],
+            'markup_reason' => ['nullable', 'string'],
+            'selected_addon_choices' => ['nullable', 'array'],
+            'selected_addon_choices.*' => ['string'],
+            'addon_choice_quantities' => ['nullable', 'array'],
+            'addon_choice_quantities.*' => ['nullable', 'integer', 'min:1'],
             'selected_addons' => ['nullable', 'array'],
             'selected_addons.*' => ['exists:addons,id'],
+            'addon_quantities' => ['nullable', 'array'],
+            'addon_quantities.*' => ['nullable', 'integer', 'min:1'],
 
             // DP / Payment awal (wajib)
             'dp_amount' => ['required', 'integer', 'min:1'],
@@ -42,6 +50,7 @@ class BookingRequest extends FormRequest
             'dp_amount.min' => 'Nominal DP minimal Rp 1.',
             'payment_method.required' => 'Metode pembayaran wajib dipilih.',
             'received_by.required' => 'Penerima pembayaran wajib dipilih.',
+            'guest_phone.regex' => 'Nomor telepon hanya boleh berisi angka.',
         ];
     }
 

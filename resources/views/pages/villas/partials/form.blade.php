@@ -76,17 +76,17 @@
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Weekday</label>
-                            <input type="number" step="1" min="0" name="price_weekday" value="{{ old('price_weekday', $villaUnit->price_weekday ?? '') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                            <input type="number" step="1" min="0" name="price_weekday" value="{{ old('price_weekday', $villaUnit->price_weekday ?? 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
                             @error('price_weekday')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Semi Weekend</label>
-                            <input type="number" step="1" min="0" name="price_semi_weekend" value="{{ old('price_semi_weekend', $villaUnit->price_semi_weekend ?? '') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                            <input type="number" step="1" min="0" name="price_semi_weekend" value="{{ old('price_semi_weekend', $villaUnit->price_semi_weekend ?? 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
                             @error('price_semi_weekend')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Harga Weekend</label>
-                            <input type="number" step="1" min="0" name="price_weekend" value="{{ old('price_weekend', $villaUnit->price_weekend ?? '') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                            <input type="number" step="1" min="0" name="price_weekend" value="{{ old('price_weekend', $villaUnit->price_weekend ?? 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
                             @error('price_weekend')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                         </div>
                     </div>

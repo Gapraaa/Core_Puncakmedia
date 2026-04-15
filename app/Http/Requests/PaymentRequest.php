@@ -15,6 +15,7 @@ class PaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'invoice_id' => ['nullable', 'exists:invoices,id'],
             'amount' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', Rule::in(['cash', 'transfer'])],
             'received_by' => ['required', 'string', Rule::in(['finance', 'office', 'field_staff'])],

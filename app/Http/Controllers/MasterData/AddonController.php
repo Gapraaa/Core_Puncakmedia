@@ -15,6 +15,7 @@ class AddonController extends Controller
     public function index(Request $request): View
     {
         $addons = Addon::query()
+            ->withCount('options')
             ->when($request->filled('q'), fn (Builder $query): Builder => $query->where('name', 'like', '%' . trim((string) $request->string('q')) . '%'))
             ->when($request->filled('charge_type'), fn (Builder $query): Builder => $query->where('charge_type', $request->string('charge_type')))
             ->when($request->filled('is_active'), function (Builder $query) use ($request): Builder {
@@ -43,7 +44,7 @@ class AddonController extends Controller
     {
         return view('pages.addons.show', [
             'title' => 'Detail Add-on',
-            'addon' => $addon,
+            'addon' => $addon->load('options'),
         ]);
     }
 

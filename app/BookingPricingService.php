@@ -24,7 +24,7 @@ class BookingPricingService
 
                 return [
                     'item_type' => 'night',
-                    'item_name' => sprintf('Night stay for %s', $night->format('Y-m-d')),
+                    'item_name' => sprintf('Harga per malam %s', $night->format('Y-m-d')),
                     'reference_date' => $night->toDateString(),
                     'quantity' => 1,
                     'unit_price' => $price,
@@ -55,13 +55,13 @@ class BookingPricingService
         $seasonalPrice = $this->findSeasonalPrice($villaUnit, $night);
 
         if ($seasonalPrice !== null) {
-            return $seasonalPrice->note ?: 'Seasonal override price';
+            return $seasonalPrice->note ?: 'Harga high season';
         }
 
         return match ((int) $night->dayOfWeek) {
-            Carbon::FRIDAY => 'Semi-weekend price',
-            Carbon::SATURDAY => 'Weekend price',
-            default => 'Weekday price',
+            Carbon::FRIDAY => 'Harga semi weekend',
+            Carbon::SATURDAY => 'Harga weekend',
+            default => 'Harga weekday',
         };
     }
 

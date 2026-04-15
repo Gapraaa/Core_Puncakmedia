@@ -4,16 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Addon extends Model
+class AddonOption extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'addon_id',
         'name',
         'price',
-        'charge_type',
+        'charge_basis',
+        'unit_label',
+        'sort_order',
         'is_active',
     ];
 
@@ -24,8 +27,8 @@ class Addon extends Model
         ];
     }
 
-    public function options(): HasMany
+    public function addon(): BelongsTo
     {
-        return $this->hasMany(AddonOption::class)->orderBy('sort_order')->orderBy('name');
+        return $this->belongsTo(Addon::class);
     }
 }

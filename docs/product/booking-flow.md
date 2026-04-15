@@ -39,3 +39,16 @@
 
 ## Draft Concept
 The WhatsApp service may use draft-confirm flow before final posting into Core PMS.
+
+## Update 2026-04-15
+- DP saat create booking tidak boleh lebih besar dari `grand_total`
+- Setelah booking berhasil dibuat, sistem otomatis membuat `INVOICE UTAMA`
+- Dokumen invoice sekarang dihasilkan sebagai PDF dan langsung terunduh setelah booking berhasil dibuat
+- Pembayaran tambahan tidak boleh lebih besar dari sisa tagihan invoice / booking
+- Dokumen bukti pembayaran sekarang dihasilkan sebagai PDF dan langsung terunduh setelah pembayaran berhasil dicatat
+- Modul `Invoice` terpisah tersedia untuk kebutuhan Sales / Finance dengan alur:
+  - daftar villa
+  - daftar unit untuk resort
+  - daftar invoice
+  - detail invoice
+- Nama invoice yang dibuat disimpan dalam huruf besar agar konsisten secara operasional

@@ -40,3 +40,10 @@ A booking may receive:
 - extend payment
 
 If new charges are added after a booking was marked lunas, the booking may become cicil/dp again until the balance is settled.
+
+## Update 2026-04-15
+- DP saat create booking tidak boleh lebih besar dari `grand_total`
+- Pembayaran tambahan tidak boleh lebih besar dari `remaining_balance`
+- Setiap pembayaran tetap terhubung ke invoice tertentu, lalu direkap ke booking induk
+- Bukti pembayaran sekarang dihasilkan sebagai PDF
+- Setelah pembayaran berhasil dicatat, dokumen bukti pembayaran langsung terunduh

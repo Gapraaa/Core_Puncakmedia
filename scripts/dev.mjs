@@ -2,122 +2,384 @@
 // ============================================================
 //  Puncakmedia Core PMS - Dev Launcher
 //  Usage: npm run dev
-//  Pre-checks environment lalu jalankan Laravel + Vite sekaligus
+//  Pre-check environment lalu jalankan Laravel + Vite
 // ============================================================
 
-import { execSync, spawn } from "child_process";
+import { execFileSync, spawn } from "child_process";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 
 const ROOT = resolve(import.meta.dirname, "..");
+const IS_WINDOWS = process.platform === "win32";
+const VITE_BIN = resolve(ROOT, "node_modules", "vite", "bin", "vite.js");
 
-// -- Helpers --------------------------------------------------
 const colors = {
   reset: "\x1b[0m",
   red: "\x1b[31m",
   green: "\x1b[32m",
   yellow: "\x1b[33m",
-  cyan: "\x1b[36m",
+  blue: "\x1b[34m",
   magenta: "\x1b[35m",
-  dim: "\x1b[2m",
+  cyan: "\x1b[36m",
+  purple: "\x1b[38;5;141m",
+  orange: "\x1b[38;5;214m",
+  gray: "\x1b[90m",
+  white: "\x1b[37m",
   bold: "\x1b[1m",
   bgBlue: "\x1b[44m",
-  white: "\x1b[37m",
+  bgMagenta: "\x1b[45m",
+  bgCyan: "\x1b[46m",
 };
 
-const c = (color, text) => `${colors[color]}${text}${colors.reset}`;
+const c = (color, text) => `${colors[color] ?? ""}${text}${colors.reset}`;
 
-function ok(msg) {
-  console.log(`  ${c("green", "[  OK ]")} ${msg}`);
-}
-function fail(msg) {
-  console.log(`  ${c("red", "[FAIL ]")} ${msg}`);
-}
-function warn(msg) {
-  console.log(`  ${c("yellow", "[ WARN]")} ${msg}`);
-}
-function info(msg) {
-  console.log(`  ${c("magenta", "[INFO ]")} ${msg}`);
-}
-function header(msg) {
-  console.log(`\n  ${c("bgBlue", c("white", ` ${msg} `))}\n`);
-}
-
-function run(cmd) {
-  return execSync(cmd, { cwd: ROOT, encoding: "utf-8", timeout: 30000, stdio: ["pipe", "pipe", "pipe"] }).trim();
-}
-
-function tryRun(cmd) {
-  try {
-    return { ok: true, output: run(cmd) };
-  } catch (e) {
-    return { ok: false, output: e.stderr || e.stdout || e.message };
-  }
-}
+const icons = {
+  ok: "✔",
+  fail: "✖",
+  warn: "▲",
+  info: "●",
+  php: "🐘",
+  vite: "⚡",
+  laravel: "🌿",
+  tools: "🧰",
+  files: "📦",
+  database: "🗄",
+  tests: "🧪",
+  launch: "🚀",
+};
 
 const errors = [];
 const warnings = [];
+const executableCache = new Map();
 
-// -- Banner ---------------------------------------------------
+function line() {
+  console.log(c("gray", "  ───────────────────────────────────────────────"));
+}
+
+function header(icon, title, accent = "bgBlue") {
+  console.log("");
+  console.log(`  ${c(accent, c("white", ` ${icon} ${title} `))}`);
+  console.log("");
+}
+
+function ok(message) {
+  console.log(`  ${c("green", icons.ok)} ${message}`);
+}
+
+function fail(message) {
+  console.log(`  ${c("red", icons.fail)} ${message}`);
+}
+
+function warn(message) {
+  console.log(`  ${c("yellow", icons.warn)} ${message}`);
+}
+
+function info(message) {
+  console.log(`  ${c("cyan", icons.info)} ${message}`);
+}
+
+function dim(text) {
+  return c("gray", text);
+}
+
+function timestamp() {
+  return new Date().toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function fullDateTime() {
+  const now = new Date();
+
+  const day = now.toLocaleDateString("id-ID", { weekday: "long" });
+  const date = now.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const time = now.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  return {
+    day,
+    date,
+    time,
+  };
+}
+
+function renderBanner() {
+  const lines = [
+    "██████╗  ██╗   ██╗ ███╗   ██╗  ██████╗  █████╗  ██╗  ██╗ ███╗   ███╗ ███████╗ ██████╗  ██╗  █████╗ ",
+    "██╔══██╗ ██║   ██║ ████╗  ██║ ██╔════╝ ██╔══██╗ ██║ ██╔╝ ████╗ ████║ ██╔════╝ ██╔══██╗ ██║ ██╔══██╗",
+    "██████╔╝ ██║   ██║ ██╔██╗ ██║ ██║      ███████║ █████╔╝  ██╔████╔██║ █████╗   ██║  ██║ ██║ ███████║",
+    "██╔═══╝  ██║   ██║ ██║╚██╗██║ ██║      ██╔══██║ ██╔═██╗  ██║╚██╔╝██║ ██╔══╝   ██║  ██║ ██║ ██╔══██║",
+    "██║      ╚██████╔╝ ██║ ╚████║ ╚██████╗ ██║  ██║ ██║  ██╗ ██║ ╚═╝ ██║ ███████╗ ██████╔╝ ██║ ██║  ██║",
+    "╚═╝       ╚═════╝  ╚═╝  ╚═══╝  ╚═════╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚═╝     ╚═╝ ╚══════╝ ╚═════╝  ╚═╝ ╚═╝  ╚═╝",
+  ];
+
+  lines.forEach((line, index) => {
+    const accent = index % 2 === 0 ? "green" : "orange";
+    console.log(c(accent, `  ${line}`));
+  });
+}
+
+function renderRetroFrame() {
+  console.log(c("gray", "  ┌──────────────────────────────────────────────────────────────┐"));
+  console.log(c("gray", "  │  CRT LINK STABLE  ::  DEV TERMINAL ONLINE                   │"));
+  console.log(c("gray", "  └──────────────────────────────────────────────────────────────┘"));
+}
+
+function quoteArg(value) {
+  const text = String(value ?? "");
+
+  if (text === "") {
+    return '""';
+  }
+
+  if (!/[ \t"]/u.test(text)) {
+    return text;
+  }
+
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildCmdCommand(command, args = []) {
+  const inner = [quoteArg(command), ...args.map(quoteArg)].join(" ");
+  return `"${inner}"`;
+}
+
+function locateExecutable(base) {
+  if (executableCache.has(base)) {
+    return executableCache.get(base);
+  }
+
+  if (!IS_WINDOWS) {
+    executableCache.set(base, base);
+    return base;
+  }
+
+  if (base === "node") {
+    executableCache.set(base, process.execPath);
+    return process.execPath;
+  }
+
+  const candidates = {
+    npm: ["npm.cmd", "npm"],
+    composer: ["composer.bat", "composer", "composer.cmd"],
+    php: ["php.exe", "php"],
+  }[base] ?? [base];
+
+  for (const candidate of candidates) {
+    try {
+      const output = execFileSync("where.exe", [candidate], {
+        cwd: ROOT,
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find(Boolean);
+
+      if (output) {
+        executableCache.set(base, output);
+        return output;
+      }
+    } catch {
+      // continue searching
+    }
+  }
+
+  const fallback = candidates[0];
+  executableCache.set(base, fallback);
+  return fallback;
+}
+
+function run(command, args = []) {
+  const resolved = locateExecutable(command);
+
+  if (IS_WINDOWS && /\.(bat|cmd)$/i.test(resolved)) {
+    const commandLine = buildCmdCommand(resolved, args);
+
+    return execFileSync("cmd.exe", ["/d", "/s", "/c", commandLine], {
+      cwd: ROOT,
+      encoding: "utf-8",
+      timeout: 30000,
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+  }
+
+  return execFileSync(resolved, args, {
+    cwd: ROOT,
+    encoding: "utf-8",
+    timeout: 30000,
+    stdio: ["pipe", "pipe", "pipe"],
+  }).trim();
+}
+
+function tryRun(command, args = []) {
+  try {
+    return { ok: true, output: run(command, args) };
+  } catch (error) {
+    return {
+      ok: false,
+      output: error.stderr || error.stdout || error.message,
+    };
+  }
+}
+
+function createProcess(command, args, options = {}) {
+  const resolved = locateExecutable(command);
+
+  if (IS_WINDOWS && /\.(bat|cmd)$/i.test(resolved)) {
+    const commandLine = buildCmdCommand(resolved, args);
+
+    return spawn("cmd.exe", ["/d", "/s", "/c", commandLine], {
+      cwd: ROOT,
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: false,
+      ...options,
+    });
+  }
+
+  return spawn(resolved, args, {
+    cwd: ROOT,
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: false,
+    ...options,
+  });
+}
+
+function stripAnsi(text) {
+  return text.replace(/\x1B\[[0-9;]*m/g, "");
+}
+
+function normalizeLine(line) {
+  return stripAnsi(String(line ?? ""))
+    .replace(/\r/g, "")
+    .replace(/\u001bc/g, "")
+    .trimEnd();
+}
+
+function classifyLaravelLine(line) {
+  if (/ERROR|Exception|Failed|ParseError|Fatal/i.test(line)) return "error";
+  if (/WARN|warning/i.test(line)) return "warn";
+  if (/\bGET\b|\bPOST\b|\bPUT\b|\bPATCH\b|\bDELETE\b/.test(line)) return "request";
+  if (/server running|development server/i.test(line)) return "success";
+  return "default";
+}
+
+function classifyViteLine(line) {
+  if (/error/i.test(line)) return "error";
+  if (/warning/i.test(line)) return "warn";
+  if (/Local:|Network:|ready in/i.test(line)) return "success";
+  return "default";
+}
+
+function colorizeLogLine(line, kind) {
+  if (kind === "error") return c("red", line);
+  if (kind === "warn") return c("yellow", line);
+  if (kind === "success") return c("green", line);
+  if (kind === "request") return c("cyan", line);
+  return line;
+}
+
+function wireLogs(processRef, config) {
+  let previousBlank = false;
+
+  const flush = (chunk, streamType) => {
+    const lines = chunk
+      .toString()
+      .split("\n")
+      .map(normalizeLine);
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      if (!line) {
+        if (!previousBlank) {
+          previousBlank = true;
+        }
+        continue;
+      }
+
+      previousBlank = false;
+
+      const kind = config.classify(line, streamType);
+      const tag = `${config.icon} ${config.label}`.padEnd(11, " ");
+      const renderedTag = c(config.color, tag);
+      const renderedLine = colorizeLogLine(line, kind);
+      console.log(`  ${dim(timestamp())} ${renderedTag} ${renderedLine}`);
+    }
+  };
+
+  processRef.stdout.on("data", (chunk) => flush(chunk, "stdout"));
+  processRef.stderr.on("data", (chunk) => flush(chunk, "stderr"));
+}
+
+const launchMoment = fullDateTime();
+
 console.log("");
-console.log(c("cyan", "  ========================================"));
-console.log(c("cyan", "   Puncakmedia Core PMS - Dev Launcher"));
-console.log(c("cyan", "   Laravel 12 + Vite + TailAdmin"));
-console.log(c("cyan", "  ========================================"));
+renderBanner();
+renderRetroFrame();
+console.log(`  ${c("orange", "✦")} ${c("bold", "Hari")}      : ${c("green", launchMoment.day.toUpperCase())}`);
+console.log(`  ${c("orange", "✦")} ${c("bold", "Tanggal")}   : ${c("yellow", launchMoment.date.toUpperCase())}`);
+console.log(`  ${c("orange", "✦")} ${c("bold", "Waktu")}     : ${c("magenta", launchMoment.time)}`);
+console.log(`  ${c("green", ">")} ${c("bold", "SYSTEM READY")} ${c("gray", "::")} ${c("cyan", "AWAITING SERVICE BOOT")}`);
 console.log("");
 
-// =============================================================
-//  PHASE 1 - Tool Check
-// =============================================================
-header("Phase 1: Checking Required Tools");
+header(icons.tools, "Phase 1: Checking Required Tools", "bgCyan");
 
-// PHP
 try {
-  const phpV = run("php -v").split("\n")[0];
-  const match = phpV.match(/PHP (\d+)\.(\d+)/);
-  if (match && (parseInt(match[1]) > 8 || (parseInt(match[1]) === 8 && parseInt(match[2]) >= 2))) {
-    ok(`PHP ${match[1]}.${match[2]}`);
+  const phpVersion = run("php", ["-v"]).split("\n")[0];
+  const match = phpVersion.match(/PHP (\d+)\.(\d+)/);
+  if (match && (Number.parseInt(match[1], 10) > 8 || (Number.parseInt(match[1], 10) === 8 && Number.parseInt(match[2], 10) >= 2))) {
+    ok(`${icons.php} PHP ${match[1]}.${match[2]}`);
   } else {
-    fail(`PHP ditemukan tapi butuh >= 8.2`);
+    fail(`${icons.php} PHP ditemukan tapi butuh >= 8.2`);
     errors.push("PHP version terlalu rendah, butuh >= 8.2");
   }
 } catch {
-  fail("PHP tidak ditemukan di PATH");
+  fail(`${icons.php} PHP tidak ditemukan di PATH`);
   errors.push("PHP tidak tersedia");
 }
 
-// Node
 try {
-  const nodeV = run("node -v");
-  ok(`Node ${nodeV}`);
+  ok(`🟢 Node ${run("node", ["-v"])}`);
 } catch {
-  fail("Node.js tidak ditemukan");
+  fail("🟢 Node.js tidak ditemukan");
   errors.push("Node.js tidak tersedia");
 }
 
-// Composer
 try {
-  const compV = run("composer --version");
-  const m = compV.match(/Composer version (\S+)/);
-  ok(`Composer ${m ? m[1] : "OK"}`);
+  const composerVersion = run("composer", ["--version"]);
+  const match = composerVersion.match(/Composer version (\S+)/);
+  ok(`🎼 Composer ${match ? match[1] : "OK"}`);
 } catch {
-  fail("Composer tidak ditemukan");
-  errors.push("Composer tidak tersedia");
+  if (existsSync(resolve(ROOT, "vendor/autoload.php"))) {
+    warn("🎼 Composer tidak ditemukan, tapi vendor/ sudah ada jadi dev server tetap bisa jalan");
+    warnings.push("Composer tidak tersedia di PATH, tapi vendor sudah terinstall");
+  } else {
+    fail("🎼 Composer tidak ditemukan");
+    errors.push("Composer tidak tersedia");
+  }
 }
 
-// =============================================================
-//  PHASE 2 - Project Files
-// =============================================================
-header("Phase 2: Checking Project Files");
+header(icons.files, "Phase 2: Checking Project Files", "bgBlue");
 
-// .env
 if (existsSync(resolve(ROOT, ".env"))) {
   ok(".env ditemukan");
 
-  // APP_KEY
   const envContent = readFileSync(resolve(ROOT, ".env"), "utf-8");
-  const keyLine = envContent.split("\n").find((l) => l.startsWith("APP_KEY="));
-  if (keyLine && keyLine.length > 10) {
+  const appKeyLine = envContent
+    .split("\n")
+    .find((line) => line.startsWith("APP_KEY="));
+
+  if (appKeyLine && appKeyLine.length > 10) {
     ok("APP_KEY sudah di-set");
   } else {
     warn("APP_KEY kosong - jalankan: php artisan key:generate");
@@ -128,7 +390,6 @@ if (existsSync(resolve(ROOT, ".env"))) {
   warnings.push(".env belum dibuat");
 }
 
-// vendor
 if (existsSync(resolve(ROOT, "vendor/autoload.php"))) {
   ok("vendor/ terinstall");
 } else {
@@ -136,7 +397,6 @@ if (existsSync(resolve(ROOT, "vendor/autoload.php"))) {
   errors.push("Composer dependencies belum terinstall");
 }
 
-// node_modules
 if (existsSync(resolve(ROOT, "node_modules"))) {
   ok("node_modules/ terinstall");
 } else {
@@ -144,14 +404,11 @@ if (existsSync(resolve(ROOT, "node_modules"))) {
   errors.push("npm dependencies belum terinstall");
 }
 
-// =============================================================
-//  PHASE 3 - Database
-// =============================================================
-header("Phase 3: Checking Database");
+header(icons.database, "Phase 3: Checking Database", "bgMagenta");
 
-const dbResult = tryRun("php artisan migrate:status");
-if (dbResult.ok) {
-  if (dbResult.output.includes("Pending")) {
+const databaseResult = tryRun("php", ["artisan", "migrate:status"]);
+if (databaseResult.ok) {
+  if (databaseResult.output.includes("Pending")) {
     warn("Ada migration yang belum dijalankan");
     warnings.push("Ada pending migrations");
   } else {
@@ -162,13 +419,9 @@ if (dbResult.ok) {
   warnings.push("Koneksi database gagal dicek");
 }
 
-// =============================================================
-//  PHASE 4 - Smoke Test
-// =============================================================
-header("Phase 4: Quick Smoke Test");
+header(icons.tests, "Phase 4: Quick Smoke Test", "bgBlue");
 
-// Routes
-const routeResult = tryRun("php artisan route:list --json");
+const routeResult = tryRun("php", ["artisan", "route:list", "--json"]);
 if (routeResult.ok) {
   try {
     const routes = JSON.parse(routeResult.output);
@@ -181,52 +434,53 @@ if (routeResult.ok) {
   warnings.push("Route list gagal");
 }
 
-// Views
-const viewResult = tryRun("php artisan view:cache");
+const viewResult = tryRun("php", ["artisan", "view:cache"]);
 if (viewResult.ok) {
   ok("Blade views OK");
-  tryRun("php artisan view:clear");
+  tryRun("php", ["artisan", "view:clear"]);
 } else {
   warn("Blade views ada masalah");
   warnings.push("View cache gagal");
 }
 
-// =============================================================
-//  PHASE 5 - Feature Tests
-// =============================================================
-header("Phase 5: Running Tests");
+header(icons.tests, "Phase 5: Running Tests", "bgCyan");
 
-const testResult = tryRun("php artisan test");
+const testResult = tryRun("php", ["artisan", "test"]);
 if (testResult.ok) {
-  const lines = testResult.output.split("\n").filter((l) => l.trim());
-  const summary = lines.slice(-3);
-  summary.forEach((l) => info(l.trim()));
+  const summary = testResult.output
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-3);
+
+  summary.forEach((line) => info(line));
   ok("Semua test PASSED");
 } else {
-  const lines = (testResult.output || "").split("\n").filter((l) => l.trim());
-  const summary = lines.slice(-5);
-  summary.forEach((l) => info(l.trim()));
+  const summary = (testResult.output || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-5);
+
+  summary.forEach((line) => info(line));
   warn("Beberapa test gagal (server tetap bisa jalan)");
   warnings.push("Ada test yang gagal");
 }
 
-// =============================================================
-//  SUMMARY
-// =============================================================
 console.log("");
-console.log(c("cyan", "  ----------------------------------------"));
-console.log(c("bold", "            CHECK RESULT SUMMARY"));
-console.log(c("cyan", "  ----------------------------------------"));
+line();
+console.log(`  ${c("bold", "CHECK RESULT SUMMARY")}`);
+line();
 
 if (warnings.length > 0) {
-  console.log(`\n  ${c("yellow", `Warnings (${warnings.length}):`)} `);
-  warnings.forEach((w) => console.log(`    ${c("yellow", "!")} ${w}`));
+  console.log(`\n  ${c("yellow", `Warnings (${warnings.length})`)}`);
+  warnings.forEach((warning) => console.log(`    ${c("yellow", icons.warn)} ${warning}`));
 }
 
 if (errors.length > 0) {
-  console.log(`\n  ${c("red", `Errors (${errors.length}):`)} `);
-  errors.forEach((e) => console.log(`    ${c("red", "x")} ${e}`));
-  console.log(`\n  ${c("red", "x Ada error kritikal. Perbaiki dulu sebelum menjalankan server.")}`);
+  console.log(`\n  ${c("red", `Errors (${errors.length})`)}`);
+  errors.forEach((error) => console.log(`    ${c("red", icons.fail)} ${error}`));
+  console.log(`\n  ${c("red", "Ada error kritikal. Perbaiki dulu sebelum menjalankan server.")}`);
   process.exit(1);
 }
 
@@ -234,75 +488,71 @@ if (warnings.length === 0) {
   console.log(`\n  ${c("green", "Semua check PASSED!")}`);
 }
 
-// =============================================================
-//  PHASE 6 - Launch
-// =============================================================
 console.log("");
-header("Launching Dev Servers");
-console.log(`  ${c("cyan", "Laravel")}  ->  http://127.0.0.1:8000`);
-console.log(`  ${c("magenta", "Vite")}     ->  http://127.0.0.1:5173 (HMR)`);
-console.log(`\n  ${c("dim", "Tekan Ctrl+C untuk stop semua")}\n`);
+header(icons.launch, "Launching Dev Servers", "bgMagenta");
+console.log(`  ${c("green", `${icons.laravel} Laravel`)}`.padEnd(27, " ") + `${c("white", "http://127.0.0.1:8000")}`);
+console.log(`  ${c("magenta", `${icons.vite} Vite`)}`.padEnd(27, " ") + `${c("white", "http://127.0.0.1:5173")}`);
+console.log(`  ${c("green", "●")} ${c("bold", "LARAVEL")}  ${c("gray", "::")} ${c("yellow", "STARTING")}`);
+console.log(`  ${c("magenta", "●")} ${c("bold", "VITE")}     ${c("gray", "::")} ${c("yellow", "STARTING")}`);
+console.log(`  ${c("orange", "✦")} ${dim("Tekan Ctrl+C untuk stop semua")}`);
+console.log("");
 
-// Spawn Laravel
-const laravel = spawn("php", ["artisan", "serve"], {
-  cwd: ROOT,
-  stdio: ["ignore", "pipe", "pipe"],
-  shell: true,
-});
+const laravel = createProcess("php", ["artisan", "serve"]);
+const vite = existsSync(VITE_BIN)
+  ? createProcess("node", [VITE_BIN, "--clearScreen", "false"])
+  : createProcess("npm", ["run", "dev:vite", "--", "--clearScreen", "false"]);
 
-// Spawn Vite
-const vite = spawn("npx", ["vite"], {
-  cwd: ROOT,
-  stdio: ["ignore", "pipe", "pipe"],
-  shell: true,
-});
-
-// Prefix output
-laravel.stdout.on("data", (d) => {
-  d.toString().split("\n").filter(Boolean).forEach((line) => {
-    console.log(`  ${c("cyan", "[laravel]")} ${line}`);
-  });
-});
-laravel.stderr.on("data", (d) => {
-  d.toString().split("\n").filter(Boolean).forEach((line) => {
-    console.log(`  ${c("cyan", "[laravel]")} ${line}`);
-  });
+wireLogs(laravel, {
+  label: "LARAVEL",
+  icon: icons.laravel,
+  color: "green",
+  classify: classifyLaravelLine,
 });
 
-vite.stdout.on("data", (d) => {
-  d.toString().split("\n").filter(Boolean).forEach((line) => {
-    console.log(`  ${c("magenta", "[vite]")}    ${line}`);
-  });
-});
-vite.stderr.on("data", (d) => {
-  d.toString().split("\n").filter(Boolean).forEach((line) => {
-    console.log(`  ${c("magenta", "[vite]")}    ${line}`);
-  });
+wireLogs(vite, {
+  label: "VITE",
+  icon: icons.vite,
+  color: "magenta",
+  classify: classifyViteLine,
 });
 
-// Handle exit
-function cleanup() {
-  console.log(`\n  ${c("yellow", "Stopping servers...")}`);
-  laravel.kill();
-  vite.kill();
+function cleanup(signal = "manual") {
+  console.log(`\n  ${c("yellow", `${icons.warn} Stopping dev servers (${signal})...`)}`);
+
+  if (!laravel.killed) {
+    laravel.kill();
+  }
+
+  if (!vite.killed) {
+    vite.kill();
+  }
+
   process.exit(0);
 }
 
-process.on("SIGINT", cleanup);
-process.on("SIGTERM", cleanup);
+process.on("SIGINT", () => cleanup("SIGINT"));
+process.on("SIGTERM", () => cleanup("SIGTERM"));
 
 laravel.on("close", (code) => {
   if (code !== null && code !== 0) {
-    console.log(`  ${c("red", "[laravel] crashed with code " + code)}`);
+    console.log(`  ${c("red", `${icons.fail} Laravel exited with code ${code}`)}`);
   }
-  vite.kill();
+
+  if (!vite.killed) {
+    vite.kill();
+  }
+
   process.exit(code || 0);
 });
 
 vite.on("close", (code) => {
   if (code !== null && code !== 0) {
-    console.log(`  ${c("red", "[vite] crashed with code " + code)}`);
+    console.log(`  ${c("red", `${icons.fail} Vite exited with code ${code}`)}`);
   }
-  laravel.kill();
+
+  if (!laravel.killed) {
+    laravel.kill();
+  }
+
   process.exit(code || 0);
 });

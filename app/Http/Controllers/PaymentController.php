@@ -90,7 +90,7 @@ class PaymentController extends Controller
                 'note' => $request->input('note'),
                 'proof_image' => $request->input('proof_image'),
                 'paid_at' => Carbon::parse($request->input('paid_at', now())),
-                'created_by' => null,
+                'created_by' => $request->user()?->id,
             ]);
 
             if ($invoice instanceof Invoice) {
@@ -103,6 +103,21 @@ class PaymentController extends Controller
             $booking->update($summary);
             return $payment;
         });
+
+        $this->auditLog(
+            module: 'pembayaran',
+            action: 'create',
+            description: 'Pembayaran booking berhasil dicatat.',
+            subject: $payment,
+            after: [
+                'booking_code' => $booking->booking_code,
+                'invoice_number' => $payment->invoice?->invoice_number,
+                'amount' => $payment->amount,
+                'payment_method' => $payment->payment_method,
+                'received_by' => $payment->received_by,
+                'paid_at' => optional($payment->paid_at)->format('Y-m-d H:i:s'),
+            ],
+        );
 
         return redirect()
             ->route('bookings.show', $booking)

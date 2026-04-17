@@ -54,7 +54,15 @@ class BrandController extends Controller
 
     public function store(BrandRequest $request): RedirectResponse
     {
-        Brand::query()->create($this->validatedData($request));
+        $brand = Brand::query()->create($this->validatedData($request));
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Brand baru berhasil dibuat.',
+            subject: $brand,
+            after: $brand->only(['name', 'slug', 'logo']),
+        );
 
         return redirect()->route('brands.index')->with('success', 'Brand berhasil dibuat.');
     }
@@ -69,14 +77,33 @@ class BrandController extends Controller
 
     public function update(BrandRequest $request, Brand $brand): RedirectResponse
     {
+        $before = $brand->only(['name', 'slug', 'logo']);
         $brand->update($this->validatedData($request));
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Brand berhasil diperbarui.',
+            subject: $brand,
+            before: $before,
+            after: $brand->fresh()->only(['name', 'slug', 'logo']),
+        );
 
         return redirect()->route('brands.index')->with('success', 'Brand berhasil diperbarui.');
     }
 
     public function destroy(Brand $brand): RedirectResponse
     {
+        $before = $brand->only(['name', 'slug', 'logo']);
         $brand->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Brand dihapus dari sistem.',
+            subject: $brand,
+            before: $before,
+        );
 
         return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
     }

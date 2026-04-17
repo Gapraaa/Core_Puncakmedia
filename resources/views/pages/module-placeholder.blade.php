@@ -5,7 +5,7 @@
 
     <div class="grid grid-cols-12 gap-4 md:gap-6">
         <div class="col-span-12 xl:col-span-8">
-            <x-common.component-card :title="$pageTitle" desc="Modul ini disiapkan untuk implementasi Phase 1 dengan tetap memakai fondasi dasbor TailAdmin yang ada.">
+            <x-common.component-card :title="$pageTitle" desc="Modul ini disiapkan untuk implementasi Phase 1 dengan tetap memakai fondasi dashboard TailAdmin yang ada.">
                 <div class="space-y-4">
                     <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">
                         {{ $description }}

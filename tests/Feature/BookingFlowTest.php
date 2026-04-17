@@ -6,7 +6,9 @@ use App\Models\Booking;
 use App\Models\Brand;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Role;
 use App\Models\SeasonalPrice;
+use App\Models\User;
 use App\Models\Villa;
 use App\Models\VillaUnit;
 use App\Models\Voucher;
@@ -14,12 +16,28 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
 
+use function Pest\Laravel\actingAs;
 use function Pest\Laravel\post;
 
 uses(DatabaseTransactions::class);
 
 beforeEach(function () {
     $this->withoutMiddleware(ValidateCsrfToken::class);
+
+    $role = Role::query()->firstOrCreate([
+        'slug' => 'master',
+    ], [
+        'name' => 'Master',
+    ]);
+
+    $user = User::factory()->create([
+        'username' => 'mastertest',
+        'email' => 'mastertest@example.com',
+    ]);
+
+    $user->roles()->attach($role);
+
+    actingAs($user);
 });
 
 function createMasterData(): array

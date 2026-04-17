@@ -11,3 +11,4 @@ Folder ini dipakai untuk mencatat progres harian implementasi supaya keputusan, 
 - [2026-04-11](./2026-04-11.md)
 - [2026-04-13](./2026-04-13.md)
 - [2026-04-15](./2026-04-15.md)
+- [2026-04-16](./2026-04-16.md)

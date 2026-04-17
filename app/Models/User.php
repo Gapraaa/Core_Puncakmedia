@@ -24,6 +24,7 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'is_active',
     ];
 
     /**
@@ -45,6 +46,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_active' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -52,6 +54,23 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    public function hasRole(string $slug): bool
+    {
+        return $this->roles->contains(fn (Role $role): bool => $role->slug === $slug);
+    }
+
+    public function hasAnyRole(array|string $slugs): bool
+    {
+        $slugs = is_array($slugs) ? $slugs : [$slugs];
+
+        return $this->roles->contains(fn (Role $role): bool => in_array($role->slug, $slugs, true));
+    }
+
+    public function primaryRole(): ?Role
+    {
+        return $this->roles->sortBy('id')->first();
     }
 
     public function createdBookings(): HasMany
@@ -62,5 +81,10 @@ class User extends Authenticatable
     public function createdPayments(): HasMany
     {
         return $this->hasMany(Payment::class, 'created_by');
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
     }
 }

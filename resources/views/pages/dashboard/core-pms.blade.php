@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Dasbor Core PMS" />
+    <x-common.page-breadcrumb pageTitle="Dashboard Core PMS" />
 
     <div class="grid grid-cols-12 gap-4 md:gap-6">
         <div class="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-8 xl:grid-cols-4">
@@ -38,7 +38,7 @@
         </div>
 
         <div class="col-span-12 xl:col-span-5">
-            <x-common.component-card title="Status Payment Booking" desc="Pantau sebaran DP, Cicil, dan Lunas dari seluruh booking.">
+            <x-common.component-card title="Status Pembayaran Booking" desc="Pantau sebaran DP, Cicil, dan Lunas dari seluruh booking.">
                 <div class="space-y-4">
                     @foreach ([
                         ['label' => 'DP', 'value' => $paymentStatusCounts['dp'], 'color' => 'bg-blue-400 dark:bg-blue-600'],
@@ -93,7 +93,7 @@
         </div>
 
         <div class="col-span-12 xl:col-span-6">
-            <x-common.component-card title="Payment Terbaru" desc="Aktivitas payment terakhir yang masuk ke sistem.">
+            <x-common.component-card title="Pembayaran Terbaru" desc="Aktivitas pembayaran terakhir yang masuk ke sistem.">
                 <div class="space-y-3">
                     @forelse ($recentPayments as $payment)
                         <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
@@ -106,7 +106,7 @@
                             </div>
                         </div>
                     @empty
-                        <div class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">Belum ada payment yang dicatat.</div>
+                        <div class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">Belum ada pembayaran yang dicatat.</div>
                     @endforelse
                 </div>
             </x-common.component-card>

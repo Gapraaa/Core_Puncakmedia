@@ -62,7 +62,7 @@ class VillaController extends Controller
 
     public function store(VillaRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request): void {
+        $villa = DB::transaction(function () use ($request): Villa {
             $villa = Villa::query()->create($this->validatedData($request));
             if ($request->has('brand_ids')) {
                 $villa->brands()->sync($request->input('brand_ids'));
@@ -80,7 +80,19 @@ class VillaController extends Controller
                     'status' => 'active',
                 ]);
             }
+            return $villa;
         });
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Villa baru berhasil dibuat.',
+            subject: $villa,
+            after: $villa->fresh()->only(['name', 'slug', 'location', 'is_resort', 'status']),
+            properties: [
+                'brand_ids' => implode(', ', $request->input('brand_ids', [])),
+            ],
+        );
 
         return redirect()->route('villas.index')->with('success', 'Villa berhasil dibuat.');
     }
@@ -101,6 +113,8 @@ class VillaController extends Controller
 
     public function update(VillaRequest $request, Villa $villa): RedirectResponse
     {
+        $before = $villa->only(['name', 'slug', 'location', 'is_resort', 'status']);
+
         DB::transaction(function () use ($request, $villa): void {
             $villa->update($this->validatedData($request));
             $villa->brands()->sync($request->input('brand_ids', []));
@@ -127,12 +141,33 @@ class VillaController extends Controller
             }
         });
 
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Villa berhasil diperbarui.',
+            subject: $villa,
+            before: $before,
+            after: $villa->fresh()->only(['name', 'slug', 'location', 'is_resort', 'status']),
+            properties: [
+                'brand_ids' => implode(', ', $request->input('brand_ids', [])),
+            ],
+        );
+
         return redirect()->route('villas.index')->with('success', 'Villa berhasil diperbarui.');
     }
 
     public function destroy(Villa $villa): RedirectResponse
     {
+        $before = $villa->only(['name', 'slug', 'location', 'is_resort', 'status']);
         $villa->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Villa dihapus dari sistem.',
+            subject: $villa,
+            before: $before,
+        );
 
         return redirect()->route('villas.index')->with('success', 'Villa berhasil dihapus.');
     }

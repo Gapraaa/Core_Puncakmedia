@@ -234,7 +234,7 @@ class BookingController extends Controller
                 'manual_discount_reason' => $data['manual_discount_reason'] ?? null,
                 'guest_link_token' => Str::random(40),
                 'booking_status' => 'confirmed',
-                'created_by' => null,
+                'created_by' => $request->user()?->id,
             ]);
 
             $mainInvoice = $booking->invoices()->create([
@@ -257,7 +257,7 @@ class BookingController extends Controller
                 'note' => $data['payment_note'] ?? 'Down Payment (DP)',
                 'proof_image' => null,
                 'paid_at' => now(),
-                'created_by' => null,
+                'created_by' => $request->user()?->id,
             ]);
 
             $mainInvoice->load(['items', 'payments']);
@@ -271,6 +271,28 @@ class BookingController extends Controller
         });
 
         $mainInvoice = $booking->invoices()->oldest()->first();
+
+        $this->auditLog(
+            module: 'booking',
+            action: 'create',
+            description: 'Booking baru berhasil dibuat.',
+            subject: $booking,
+            after: [
+                'booking_code' => $booking->booking_code,
+                'guest_name' => $booking->guest_name,
+                'guest_phone' => $booking->guest_phone,
+                'villa' => $booking->villa?->name,
+                'unit' => $booking->villaUnit?->unit_name,
+                'check_in' => optional($booking->check_in)->format('Y-m-d'),
+                'check_out' => optional($booking->check_out)->format('Y-m-d'),
+                'grand_total' => $booking->grand_total,
+                'total_paid' => $booking->total_paid,
+                'remaining_balance' => $booking->remaining_balance,
+            ],
+            properties: [
+                'invoice_number' => $mainInvoice?->invoice_number,
+            ],
+        );
 
         return redirect()
             ->route('bookings.show', $booking)

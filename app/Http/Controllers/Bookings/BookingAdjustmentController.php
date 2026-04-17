@@ -32,6 +32,13 @@ class BookingAdjustmentController extends Controller
 
     public function store(BookingAdjustmentRequest $request, Booking $booking): RedirectResponse
     {
+        $before = [
+            'check_out' => optional($booking->check_out)->format('Y-m-d'),
+            'grand_total' => $booking->grand_total,
+            'remaining_balance' => $booking->remaining_balance,
+            'items_count' => $booking->items()->count(),
+        ];
+
         DB::transaction(function () use ($request, $booking): void {
             $booking->load(['villaUnit.seasonalPrices', 'items', 'payments', 'voucher']);
 
@@ -73,6 +80,26 @@ class BookingAdjustmentController extends Controller
             $summary = $this->totalsService->summarize($booking, $booking->items, $booking->payments);
             $booking->update($summary);
         });
+
+        $booking->refresh();
+
+        $this->auditLog(
+            module: 'booking',
+            action: 'adjust',
+            description: 'Booking berhasil disesuaikan.',
+            subject: $booking,
+            before: $before,
+            after: [
+                'check_out' => optional($booking->check_out)->format('Y-m-d'),
+                'grand_total' => $booking->grand_total,
+                'remaining_balance' => $booking->remaining_balance,
+                'items_count' => $booking->items()->count(),
+            ],
+            properties: [
+                'extend_check_out' => $request->input('extend_check_out'),
+                'selected_addons' => implode(', ', $request->input('selected_addons', [])),
+            ],
+        );
 
         return redirect()->route('bookings.show', $booking)->with('success', 'Booking berhasil disesuaikan dan totalnya sudah dihitung ulang.');
     }

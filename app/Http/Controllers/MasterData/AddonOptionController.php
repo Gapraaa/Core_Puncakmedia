@@ -24,7 +24,18 @@ class AddonOptionController extends Controller
     {
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active');
-        $addon->options()->create($data);
+        $addonOption = $addon->options()->create($data);
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Opsi add-on baru berhasil dibuat.',
+            subject: $addonOption,
+            after: $addonOption->only(['addon_id', 'name', 'price', 'charge_basis', 'unit_label', 'is_active']),
+            properties: [
+                'addon' => $addon->name,
+            ],
+        );
 
         return redirect()->route('addons.show', $addon)->with('success', 'Opsi add-on berhasil dibuat.');
     }
@@ -46,7 +57,20 @@ class AddonOptionController extends Controller
 
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active');
+        $before = $addonOption->only(['addon_id', 'name', 'price', 'charge_basis', 'unit_label', 'is_active']);
         $addonOption->update($data);
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Opsi add-on berhasil diperbarui.',
+            subject: $addonOption,
+            before: $before,
+            after: $addonOption->fresh()->only(['addon_id', 'name', 'price', 'charge_basis', 'unit_label', 'is_active']),
+            properties: [
+                'addon' => $addon->name,
+            ],
+        );
 
         return redirect()->route('addons.show', $addon)->with('success', 'Opsi add-on berhasil diperbarui.');
     }
@@ -55,7 +79,19 @@ class AddonOptionController extends Controller
     {
         abort_unless($addonOption->addon_id === $addon->id, 404);
 
+        $before = $addonOption->only(['addon_id', 'name', 'price', 'charge_basis', 'unit_label', 'is_active']);
         $addonOption->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Opsi add-on dihapus dari sistem.',
+            subject: $addonOption,
+            before: $before,
+            properties: [
+                'addon' => $addon->name,
+            ],
+        );
 
         return redirect()->route('addons.show', $addon)->with('success', 'Opsi add-on berhasil dihapus.');
     }

@@ -21,6 +21,12 @@ class BookingInvoiceController extends Controller
 
     public function split(SplitInvoiceRequest $request, Booking $booking): RedirectResponse
     {
+        $selectedItemIds = collect($request->validated('item_ids'));
+        $before = [
+            'invoices_count' => $booking->invoices()->count(),
+            'selected_item_ids' => $selectedItemIds->all(),
+        ];
+
         DB::transaction(function () use ($request, $booking): void {
             $itemIds = collect($request->validated('item_ids'));
 
@@ -53,6 +59,26 @@ class BookingInvoiceController extends Controller
             $booking->load(['items', 'payments', 'voucher']);
             $booking->update($this->totalsService->summarize($booking, $booking->items, $booking->payments));
         });
+
+        $booking->refresh();
+        $newInvoice = $booking->invoices()->latest('id')->first();
+
+        $this->auditLog(
+            module: 'invoice',
+            action: 'split',
+            description: 'Invoice booking dipisahkan menjadi invoice baru.',
+            subject: $newInvoice,
+            before: $before,
+            after: [
+                'invoices_count' => $booking->invoices()->count(),
+                'invoice_number' => $newInvoice?->invoice_number,
+                'label' => $newInvoice?->label,
+            ],
+            properties: [
+                'booking_code' => $booking->booking_code,
+                'item_ids' => implode(', ', $selectedItemIds->all()),
+            ],
+        );
 
         return redirect()->route('bookings.show', $booking)->with('success', 'Invoice terpisah berhasil dibuat.');
     }

@@ -126,6 +126,14 @@ class SeasonalPriceController extends Controller
     {
         $seasonalPrice = SeasonalPrice::query()->create($request->validated());
 
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Harga high season baru berhasil dibuat.',
+            subject: $seasonalPrice,
+            after: $seasonalPrice->only(['villa_unit_id', 'start_date', 'end_date', 'price', 'note']),
+        );
+
         return redirect($this->seasonalPriceRedirectRoute($seasonalPrice))
             ->with('success', 'Harga high season berhasil dibuat.');
     }
@@ -145,7 +153,17 @@ class SeasonalPriceController extends Controller
 
     public function update(SeasonalPriceRequest $request, SeasonalPrice $seasonalPrice): RedirectResponse
     {
+        $before = $seasonalPrice->only(['villa_unit_id', 'start_date', 'end_date', 'price', 'note']);
         $seasonalPrice->update($request->validated());
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Harga high season berhasil diperbarui.',
+            subject: $seasonalPrice,
+            before: $before,
+            after: $seasonalPrice->fresh()->only(['villa_unit_id', 'start_date', 'end_date', 'price', 'note']),
+        );
 
         return redirect($this->seasonalPriceRedirectRoute($seasonalPrice))
             ->with('success', 'Harga high season berhasil diperbarui.');
@@ -154,7 +172,16 @@ class SeasonalPriceController extends Controller
     public function destroy(SeasonalPrice $seasonalPrice): RedirectResponse
     {
         $redirectTo = $this->seasonalPriceRedirectRoute($seasonalPrice);
+        $before = $seasonalPrice->only(['villa_unit_id', 'start_date', 'end_date', 'price', 'note']);
         $seasonalPrice->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Harga high season dihapus dari sistem.',
+            subject: $seasonalPrice,
+            before: $before,
+        );
 
         return redirect($redirectTo)->with('success', 'Harga high season berhasil dihapus.');
     }

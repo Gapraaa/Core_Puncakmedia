@@ -2,45 +2,54 @@
 
 namespace App\Helpers;
 
+use Illuminate\Support\Facades\Auth;
+
 class MenuHelper
 {
     public static function getMenuGroups(): array
     {
-        return [
+        $user = Auth::user();
+
+        $groups = [
             [
                 'title' => 'Core PMS',
                 'items' => [
                     [
                         'icon' => 'dashboard',
-                        'name' => 'Dasbor',
+                        'name' => 'Dashboard',
                         'path' => route('dashboard'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
                     ],
                     [
                         'icon' => 'pages',
                         'name' => 'Data Master',
+                        'roles' => ['master', 'superadmin', 'head-office', 'admin-sales'],
                         'subItems' => [
-                            ['name' => 'Brand', 'path' => route('brands.index')],
-                            ['name' => 'Villa', 'path' => route('villas.index')],
-                            ['name' => 'Unit Resort', 'path' => route('villa-units.index')],
-                            ['name' => 'Harga High Season', 'path' => route('seasonal-prices.index')],
-                            ['name' => 'Add-ons', 'path' => route('addons.index')],
-                            ['name' => 'Voucher', 'path' => route('vouchers.index')],
+                            ['name' => 'Brand', 'path' => route('brands.index'), 'roles' => ['master', 'superadmin', 'head-office']],
+                            ['name' => 'Villa', 'path' => route('villas.index'), 'roles' => ['master', 'superadmin', 'head-office', 'admin-sales']],
+                            ['name' => 'Unit Resort', 'path' => route('villa-units.index'), 'roles' => ['master', 'superadmin', 'head-office', 'admin-sales']],
+                            ['name' => 'Harga High Season', 'path' => route('seasonal-prices.index'), 'roles' => ['master', 'superadmin', 'head-office', 'admin-sales']],
+                            ['name' => 'Add-ons', 'path' => route('addons.index'), 'roles' => ['master', 'superadmin', 'head-office', 'admin-sales']],
+                            ['name' => 'Voucher', 'path' => route('vouchers.index'), 'roles' => ['master', 'superadmin', 'head-office', 'admin-sales']],
                         ],
                     ],
                     [
                         'icon' => 'tables',
                         'name' => 'Booking',
-                        'path' => route('bookings.index')
+                        'path' => route('bookings.index'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
                     ],
                     [
                         'icon' => 'pages',
                         'name' => 'Invoice',
                         'path' => route('invoices.index'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
                     ],
                     [
                         'icon' => 'forms',
                         'name' => 'Daftar Pembayaran',
                         'path' => route('payments.index'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'finance'],
                     ],
                 ],
             ],
@@ -51,16 +60,19 @@ class MenuHelper
                         'icon' => 'calendar',
                         'name' => 'Kalender',
                         'path' => route('calendar'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'admin-sales'],
                     ],
                     [
                         'icon' => 'charts',
                         'name' => 'Laporan Keuangan',
                         'path' => route('reports.finance'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'finance'],
                     ],
                     [
                         'icon' => 'task',
                         'name' => 'Pemetaan Legacy',
                         'path' => route('migration.legacy'),
+                        'roles' => ['master', 'superadmin'],
                     ],
                 ],
             ],
@@ -68,18 +80,73 @@ class MenuHelper
                 'title' => 'Sistem',
                 'items' => [
                     [
-                        'icon' => 'authentication',
-                        'name' => 'Masuk',
-                        'path' => route('signin'),
-                    ],
-                    [
                         'icon' => 'user-profile',
                         'name' => 'Profil',
                         'path' => route('profile'),
+                        'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
+                    ],
+                    [
+                        'icon' => 'authentication',
+                        'name' => 'Manajemen User',
+                        'path' => route('users.index'),
+                        'roles' => ['master', 'superadmin'],
+                    ],
+                    [
+                        'icon' => 'task',
+                        'name' => 'Audit Log',
+                        'path' => route('audit-logs.index'),
+                        'roles' => ['master', 'superadmin', 'head-office'],
                     ],
                 ],
             ],
         ];
+
+        return self::filterMenuGroups($groups, $user);
+    }
+
+    protected static function filterMenuGroups(array $groups, mixed $user): array
+    {
+        return collect($groups)
+            ->map(function (array $group) use ($user): ?array {
+                $items = collect($group['items'])
+                    ->map(function (array $item) use ($user): ?array {
+                        if (isset($item['subItems'])) {
+                            $item['subItems'] = collect($item['subItems'])
+                                ->filter(fn (array $subItem): bool => self::canSee($subItem, $user))
+                                ->values()
+                                ->all();
+
+                            if (empty($item['subItems'])) {
+                                return null;
+                            }
+                        }
+
+                        return self::canSee($item, $user) ? $item : null;
+                    })
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if (empty($items)) {
+                    return null;
+                }
+
+                $group['items'] = $items;
+
+                return $group;
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    protected static function canSee(array $item, mixed $user): bool
+    {
+        if (! isset($item['roles'])) {
+            return true;
+        }
+
+        return $user !== null && $user->hasAnyRole($item['roles']);
     }
 
     public static function getIconSvg(string $iconName): string

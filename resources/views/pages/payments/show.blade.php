@@ -1,16 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Detail Payment" />
+    <x-common.page-breadcrumb pageTitle="Detail Pembayaran" />
 
     <div class="space-y-6">
-        @if (session('success'))
-            <div class="rounded-2xl border border-success-200 bg-success-50 px-5 py-4 text-sm text-success-700 dark:border-success-800 dark:bg-success-500/10 dark:text-success-300">{{ session('success') }}</div>
-        @endif
-
         <div class="flex items-center justify-between gap-3">
             <div>
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Payment untuk {{ $payment->booking?->booking_code ?? 'Booking tidak ditemukan' }}</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Pembayaran untuk {{ $payment->booking?->booking_code ?? 'Booking tidak ditemukan' }}</h2>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('d M Y H:i') }}</p>
             </div>
             <div class="flex gap-2">

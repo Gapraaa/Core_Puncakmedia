@@ -4,9 +4,6 @@
     <x-common.page-breadcrumb pageTitle="Harga High Season" />
 
     <div class="space-y-6">
-        @if (session('success'))
-            <div class="rounded-2xl border border-success-200 bg-success-50 px-5 py-4 text-sm text-success-700 dark:border-success-800 dark:bg-success-500/10 dark:text-success-300">{{ session('success') }}</div>
-        @endif
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Katalog Villa Harga High Season</h2>

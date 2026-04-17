@@ -21,7 +21,7 @@ class DashboardController extends Controller
             ->pluck('aggregate', 'payment_status');
 
         return view('pages.dashboard.core-pms', [
-            'title' => 'Dasbor Core PMS',
+            'title' => 'Dashboard Core PMS',
             'brandCount' => Brand::query()->count(),
             'villaCount' => Villa::query()->count(),
             'villaUnitCount' => VillaUnit::query()->count(),

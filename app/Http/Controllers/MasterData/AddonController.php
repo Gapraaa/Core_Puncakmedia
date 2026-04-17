@@ -52,7 +52,15 @@ class AddonController extends Controller
     {
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active');
-        Addon::query()->create($data);
+        $addon = Addon::query()->create($data);
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Add-on baru berhasil dibuat.',
+            subject: $addon,
+            after: $addon->only(['name', 'charge_type', 'price', 'is_active']),
+        );
 
         return redirect()->route('addons.index')->with('success', 'Add-on berhasil dibuat.');
     }
@@ -69,14 +77,33 @@ class AddonController extends Controller
     {
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active');
+        $before = $addon->only(['name', 'charge_type', 'price', 'is_active']);
         $addon->update($data);
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Add-on berhasil diperbarui.',
+            subject: $addon,
+            before: $before,
+            after: $addon->fresh()->only(['name', 'charge_type', 'price', 'is_active']),
+        );
 
         return redirect()->route('addons.index')->with('success', 'Add-on berhasil diperbarui.');
     }
 
     public function destroy(Addon $addon): RedirectResponse
     {
+        $before = $addon->only(['name', 'charge_type', 'price', 'is_active']);
         $addon->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Add-on dihapus dari sistem.',
+            subject: $addon,
+            before: $before,
+        );
 
         return redirect()->route('addons.index')->with('success', 'Add-on berhasil dihapus.');
     }

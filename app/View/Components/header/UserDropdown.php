@@ -2,6 +2,7 @@
 
 namespace App\View\Components\header;
 
+use Illuminate\Support\Facades\Auth;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -21,6 +22,8 @@ class UserDropdown extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.header.user-dropdown');
+        return view('components.header.user-dropdown', [
+            'user' => Auth::user(),
+        ]);
     }
 }

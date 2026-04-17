@@ -21,6 +21,22 @@ class DocumentController extends Controller
             'payments',
         ]);
 
+        $isDownload = request()->boolean('download');
+
+        $this->auditLog(
+            module: 'dokumen',
+            action: $isDownload ? 'download_invoice' : 'view_invoice',
+            description: $isDownload
+                ? 'Invoice berhasil diunduh.'
+                : 'Invoice dibuka untuk dilihat.',
+            subject: $invoice,
+            properties: [
+                'booking_code' => $invoice->booking?->booking_code,
+                'guest_name' => $invoice->booking?->guest_name,
+                'download' => $isDownload ? 'ya' : 'tidak',
+            ],
+        );
+
         $pdf = Pdf::loadView('pages.documents.invoice', [
             'title' => 'Invoice ' . $invoice->invoice_number,
             'invoice' => $invoice,
@@ -29,7 +45,7 @@ class DocumentController extends Controller
 
         $filename = Str::upper('invoice-' . $invoice->invoice_number . '.pdf');
 
-        return request()->boolean('download')
+        return $isDownload
             ? $pdf->download($filename)
             : $pdf->stream($filename);
     }
@@ -42,6 +58,23 @@ class DocumentController extends Controller
             'invoice.booking.villaUnit',
         ]);
 
+        $isDownload = request()->boolean('download');
+
+        $this->auditLog(
+            module: 'dokumen',
+            action: $isDownload ? 'download_receipt' : 'view_receipt',
+            description: $isDownload
+                ? 'Bukti pembayaran berhasil diunduh.'
+                : 'Bukti pembayaran dibuka untuk dilihat.',
+            subject: $payment,
+            properties: [
+                'booking_code' => $payment->booking?->booking_code,
+                'invoice_number' => $payment->invoice?->invoice_number,
+                'amount' => $payment->amount,
+                'download' => $isDownload ? 'ya' : 'tidak',
+            ],
+        );
+
         $pdf = Pdf::loadView('pages.documents.receipt', [
             'title' => 'Bukti Pembayaran ' . $payment->id,
             'payment' => $payment,
@@ -50,7 +83,7 @@ class DocumentController extends Controller
 
         $filename = Str::upper('bukti-pembayaran-' . ($payment->invoice?->invoice_number ?? $payment->id) . '.pdf');
 
-        return request()->boolean('download')
+        return $isDownload
             ? $pdf->download($filename)
             : $pdf->stream($filename);
     }

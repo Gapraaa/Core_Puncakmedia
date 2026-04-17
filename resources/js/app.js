@@ -248,6 +248,148 @@ Alpine.data('bookingForm', (config) => ({
     },
 }));
 
+Alpine.data('calendarCard', (config) => ({
+    currentMonth: config.initialMonth ?? new Date().toISOString().slice(0, 7),
+    bookings: config.bookings ?? [],
+    showBookingBaseUrl: config.showBookingBaseUrl ?? '',
+
+    prevMonth() {
+        this.currentMonth = this.shiftMonth(-1);
+    },
+
+    nextMonth() {
+        this.currentMonth = this.shiftMonth(1);
+    },
+
+    shiftMonth(step) {
+        const [year, month] = String(this.currentMonth).split('-').map(Number);
+        const date = new Date(year, (month - 1) + step, 1);
+
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    },
+
+    get monthDate() {
+        const [year, month] = String(this.currentMonth).split('-').map(Number);
+
+        return new Date(year, month - 1, 1);
+    },
+
+    get monthLabel() {
+        return this.monthDate.toLocaleDateString('id-ID', {
+            month: 'long',
+            year: 'numeric',
+        }).toUpperCase();
+    },
+
+    get weeks() {
+        const start = new Date(this.monthDate);
+        start.setDate(1);
+        start.setDate(start.getDate() - start.getDay());
+
+        const end = new Date(this.monthDate.getFullYear(), this.monthDate.getMonth() + 1, 0);
+        end.setDate(end.getDate() + (6 - end.getDay()));
+
+        const weeks = [];
+        const cursor = new Date(start);
+
+        while (cursor <= end) {
+            const week = [];
+
+            for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+                const dateString = this.formatDate(cursor);
+                const booking = this.findBooking(dateString);
+
+                week.push({
+                    date: dateString,
+                    day: cursor.getDate(),
+                    is_current_month: cursor.getMonth() === this.monthDate.getMonth(),
+                    is_today: dateString === this.formatDate(new Date()),
+                    booking,
+                    is_check_in: booking ? booking.check_in === dateString : false,
+                    is_check_out: booking ? this.subtractOneDay(booking.check_out) === dateString : false,
+                });
+
+                cursor.setDate(cursor.getDate() + 1);
+            }
+
+            weeks.push(week);
+        }
+
+        return weeks;
+    },
+
+    get occupancyDays() {
+        return this.weeks.flat().filter((day) => day.is_current_month && day.booking).length;
+    },
+
+    findBooking(dateString) {
+        return this.bookings.find((booking) => dateString >= booking.check_in && dateString < booking.check_out) ?? null;
+    },
+
+    subtractOneDay(dateString) {
+        const date = new Date(`${dateString}T00:00:00`);
+        date.setDate(date.getDate() - 1);
+
+        return this.formatDate(date);
+    },
+
+    formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    },
+
+    dayClasses(day) {
+        if (!day.is_current_month) {
+            return 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500';
+        }
+
+        if (day.booking) {
+            return 'bg-error-500 text-white';
+        }
+
+        return 'bg-success-50 text-gray-700 dark:bg-success-500/10 dark:text-gray-200';
+    },
+
+    dayTitle(day) {
+        if (!day.booking) {
+            return 'Tersedia';
+        }
+
+        return `${day.booking.guest_name} | ${day.booking.booking_code}`;
+    },
+
+    dayBadge(day) {
+        if (day.is_check_in) {
+            return 'IN';
+        }
+
+        if (day.is_check_out) {
+            return 'OUT';
+        }
+
+        return 'BOOK';
+    },
+
+    bookingUrl(day) {
+        if (!day.booking || !this.showBookingBaseUrl) {
+            return '#';
+        }
+
+        return `${this.showBookingBaseUrl}/${day.booking.id}`;
+    },
+
+    openBooking(day) {
+        if (!day.booking) {
+            return;
+        }
+
+        window.location.href = this.bookingUrl(day);
+    },
+}));
+
 const formatRupiah = (value) => new Intl.NumberFormat('id-ID').format(Number(value || 0));
 
 const sanitizeRupiah = (value) => {

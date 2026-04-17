@@ -111,6 +111,14 @@ class VillaUnitController extends Controller
     {
         $villaUnit = VillaUnit::query()->create($request->validated());
 
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Unit resort baru berhasil dibuat.',
+            subject: $villaUnit,
+            after: $villaUnit->only(['villa_id', 'unit_name', 'unit_type', 'capacity', 'status']),
+        );
+
         return redirect()->route('villa-units.list', $villaUnit->villa_id)->with('success', 'Unit Resort berhasil dibuat.');
     }
 
@@ -126,7 +134,17 @@ class VillaUnitController extends Controller
 
     public function update(VillaUnitRequest $request, VillaUnit $villaUnit): RedirectResponse
     {
+        $before = $villaUnit->only(['villa_id', 'unit_name', 'unit_type', 'capacity', 'status']);
         $villaUnit->update($request->validated());
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Unit resort berhasil diperbarui.',
+            subject: $villaUnit,
+            before: $before,
+            after: $villaUnit->fresh()->only(['villa_id', 'unit_name', 'unit_type', 'capacity', 'status']),
+        );
 
         return redirect()->route('villa-units.list', $villaUnit->villa_id)->with('success', 'Unit Resort berhasil diperbarui.');
     }
@@ -134,7 +152,16 @@ class VillaUnitController extends Controller
     public function destroy(VillaUnit $villaUnit): RedirectResponse
     {
         $villaId = $villaUnit->villa_id;
+        $before = $villaUnit->only(['villa_id', 'unit_name', 'unit_type', 'capacity', 'status']);
         $villaUnit->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Unit resort dihapus dari sistem.',
+            subject: $villaUnit,
+            before: $before,
+        );
 
         return redirect()->route('villa-units.list', $villaId)->with('success', 'Unit Resort berhasil dihapus.');
     }

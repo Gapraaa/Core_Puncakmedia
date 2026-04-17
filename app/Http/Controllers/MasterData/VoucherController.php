@@ -54,7 +54,15 @@ class VoucherController extends Controller
 
     public function store(VoucherRequest $request): RedirectResponse
     {
-        Voucher::query()->create($this->validatedData($request));
+        $voucher = Voucher::query()->create($this->validatedData($request));
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'create',
+            description: 'Voucher baru berhasil dibuat.',
+            subject: $voucher,
+            after: $voucher->only(['code', 'discount_type', 'amount', 'minimum_transaction', 'is_active']),
+        );
 
         return redirect()->route('vouchers.index')->with('success', 'Voucher berhasil dibuat.');
     }
@@ -69,14 +77,33 @@ class VoucherController extends Controller
 
     public function update(VoucherRequest $request, Voucher $voucher): RedirectResponse
     {
+        $before = $voucher->only(['code', 'discount_type', 'amount', 'minimum_transaction', 'is_active']);
         $voucher->update($this->validatedData($request));
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Voucher berhasil diperbarui.',
+            subject: $voucher,
+            before: $before,
+            after: $voucher->fresh()->only(['code', 'discount_type', 'amount', 'minimum_transaction', 'is_active']),
+        );
 
         return redirect()->route('vouchers.index')->with('success', 'Voucher berhasil diperbarui.');
     }
 
     public function destroy(Voucher $voucher): RedirectResponse
     {
+        $before = $voucher->only(['code', 'discount_type', 'amount', 'minimum_transaction', 'is_active']);
         $voucher->delete();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Voucher dihapus dari sistem.',
+            subject: $voucher,
+            before: $before,
+        );
 
         return redirect()->route('vouchers.index')->with('success', 'Voucher berhasil dihapus.');
     }

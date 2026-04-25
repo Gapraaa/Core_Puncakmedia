@@ -10,7 +10,7 @@
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Brand</label>
                         <select name="brand_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
                             <option value="">Pilih brand</option>
-                            @foreach ($brands as $brand)<option value="{{ $brand->id }}" @selected(old('brand_id') == $brand->id)>{{ $brand->name }}</option>@endforeach
+                            @foreach ($brands as $brand)<option value="{{ $brand->id }}" @selected(old('brand_id', request('brand_id')) == $brand->id)>{{ $brand->name }}</option>@endforeach
                         </select>
                         @error('brand_id')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                     </div>
@@ -25,7 +25,7 @@
                         @if ($villa->is_resort)
                             <select name="villa_unit_id" x-model="selectedUnitId" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
                                 <option value="">Pilih unit</option>
-                                @foreach ($villaUnits as $villaUnit)<option value="{{ $villaUnit->id }}" @selected(old('villa_unit_id') == $villaUnit->id)>{{ $villaUnit->unit_name }}</option>@endforeach
+                                @foreach ($villaUnits as $villaUnit)<option value="{{ $villaUnit->id }}" @selected(old('villa_unit_id', request('villa_unit_id')) == $villaUnit->id)>{{ $villaUnit->unit_name }}</option>@endforeach
                             </select>
                         @else
                             <input type="hidden" name="villa_unit_id" x-model="selectedUnitId">
@@ -43,18 +43,28 @@
 
                 {{-- Tanggal --}}
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-in</label><input x-model="checkIn" onclick="this.showPicker()" type="date" name="check_in" value="{{ old('check_in') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('check_in')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-out</label><input x-model="checkOut" :min="checkIn" onclick="this.showPicker()" type="date" name="check_out" value="{{ old('check_out') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('check_out')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-in</label><input x-model="checkIn" onclick="this.showPicker()" type="date" name="check_in" value="{{ old('check_in', request('check_in')) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('check_in')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-out</label><input x-model="checkOut" :min="checkIn" onclick="this.showPicker()" type="date" name="check_out" value="{{ old('check_out', request('check_out')) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('check_out')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
                 </div>
 
                 {{-- Add-ons --}}
-                <div class="space-y-4">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Pilih Add-ons</label>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Setiap kategori bisa punya beberapa opsi harga. Isi jumlah sesuai pcs, orang, pax, atau paket yang dipesan tamu.</p>
+                <div class="space-y-4 rounded-xl border border-gray-200 bg-gray-50/40 p-4 dark:border-gray-800 dark:bg-white/[0.02]">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Add-ons</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Bagian ini opsional. Tampilkan hanya jika tamu memang menambahkan layanan atau item tambahan.</p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="showAddons = !showAddons"
+                            class="inline-flex items-center justify-center rounded-lg border border-brand-200 px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-800/60 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                            x-text="showAddons ? 'Sembunyikan Add-ons' : 'Pakai Add-ons'"
+                        ></button>
                     </div>
 
-                    <div class="space-y-3">
+                    <div x-show="showAddons" class="space-y-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Setiap kategori bisa punya beberapa opsi harga. Isi jumlah sesuai pcs, orang, pax, atau paket yang dipesan tamu.</p>
+
                         @foreach ($addonChoiceGroups as $group)
                             <div x-data="{ open: {{ $loop->first ? 'true' : 'false' }} }" class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
                                 <button type="button" x-on:click="open = !open" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-white/[0.02]">

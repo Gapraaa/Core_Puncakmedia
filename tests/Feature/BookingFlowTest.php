@@ -417,3 +417,61 @@ test('invoice module pages can be opened from villa to detail invoice', function
         ->assertSee($invoice->invoice_number, false)
         ->assertSee('Riwayat Pembayaran', false);
 });
+
+test('payment module pages can be opened from villa to payment list', function () {
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data))->assertRedirect();
+
+    $resort = Villa::query()->create([
+        'name' => 'Resort Payment Test',
+        'slug' => 'resort-payment-test',
+        'location' => 'Megamendung',
+        'is_resort' => true,
+        'status' => 'active',
+    ]);
+    $resort->brands()->attach($data['brand']->id);
+
+    $resortUnit = VillaUnit::query()->create([
+        'villa_id' => $resort->id,
+        'unit_name' => 'Unit Payment A',
+        'unit_type' => 'family',
+        'capacity' => 6,
+        'price_weekday' => 500000,
+        'price_semi_weekend' => 600000,
+        'price_weekend' => 700000,
+        'status' => 'active',
+    ]);
+
+    $this->get(route('payments.index'))
+        ->assertOk()
+        ->assertSee('Katalog Villa Pembayaran', false)
+        ->assertSee($data['villa']->name, false)
+        ->assertSee($resort->name, false);
+
+    $this->get(route('payments.villa', $data['villa']))
+        ->assertOk()
+        ->assertSee('Riwayat Pembayaran', false)
+        ->assertSee('Budi Santoso', false);
+
+    $this->get(route('payments.units', $resort))
+        ->assertOk()
+        ->assertSee('Daftar Unit Resort', false)
+        ->assertSee($resortUnit->unit_name, false);
+});
+
+test('booking selection page for create can be opened separately from booking list', function () {
+    $data = createMasterData();
+
+    $this->get(route('bookings.index'))
+        ->assertOk()
+        ->assertSee('Daftar Booking Villa', false)
+        ->assertSee('Lihat Booking', false);
+
+    $this->get(route('bookings.selection'))
+        ->assertOk()
+        ->assertSee('Buat Booking Baru', false)
+        ->assertSee('Pilih villa terlebih dahulu', false)
+        ->assertSee('Buat Booking', false)
+        ->assertSee(route('bookings.create', $data['villa']), false);
+});

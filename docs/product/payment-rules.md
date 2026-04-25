@@ -47,3 +47,8 @@ If new charges are added after a booking was marked lunas, the booking may becom
 - Setiap pembayaran tetap terhubung ke invoice tertentu, lalu direkap ke booking induk
 - Bukti pembayaran sekarang dihasilkan sebagai PDF
 - Setelah pembayaran berhasil dicatat, dokumen bukti pembayaran langsung terunduh
+
+## Update 2026-04-25
+- Finance utama membaca transaksi dari `booking` dan `payments`
+- `invoice` diposisikan sebagai dokumen keluar ke tamu, bukan pusat pembacaan finance internal
+- Booking tetap menjadi identitas utama pada layar operasional, sedangkan invoice tidak perlu tampil dominan

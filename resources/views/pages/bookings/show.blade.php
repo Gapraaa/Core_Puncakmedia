@@ -12,7 +12,7 @@
             <div class="flex gap-2">
                 <a href="{{ route('bookings.adjustments.create', $booking) }}" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Penyesuaian Booking</a>
                 @if ($booking->invoices->isNotEmpty())
-                    <a href="{{ route('documents.invoices.show', $booking->invoices->first()) }}" target="_blank" class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">Lihat Invoice</a>
+                    <a href="{{ route('documents.invoices.show', $booking->invoices->first()) }}" target="_blank" class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">Unduh Invoice</a>
                 @endif
             </div>
         </div>
@@ -44,7 +44,7 @@
                 </x-common.component-card>
             </div>
             <div class="col-span-12 xl:col-span-8">
-                <x-common.component-card title="Ringkasan Total" desc="Total booking dihitung dari item booking dan pembayaran yang sudah tercatat.">
+                <x-common.component-card title="Ringkasan Keuangan Booking" desc="Finance utama membaca total, pembayaran, dan sisa tagihan langsung dari booking ini.">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Subtotal</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($booking->total_before_discount, 0, ',', '.') }}</p></div>
                         <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Total Pembayaran</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($booking->total_paid, 0, ',', '.') }}</p></div>
@@ -55,13 +55,13 @@
             </div>
         </div>
 
-        <x-common.component-card title="Booking Items" desc="Daftar nightly pricing, add-on, dan penyesuaian yang terhubung ke booking ini.">
+        <x-common.component-card title="Komponen Biaya Booking" desc="Semua biaya operasional booking terkumpul di sini dan menjadi sumber utama perhitungan keuangan internal.">
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="min-w-full">
-                    <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jenis</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Invoice</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Qty</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</th></tr></thead>
+                    <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jenis</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Qty</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</th></tr></thead>
                     <tbody>
                         @foreach ($booking->items as $item)
-                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->item_type }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->item_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $item->notes }}</div></td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->invoice?->label ?? 'Belum dipetakan' }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->reference_date?->format('d M Y') ?: '-' }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->quantity }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ number_format($item->total_price, 0, ',', '.') }}</td></tr>
+                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->item_type }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->item_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $item->notes }}</div></td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->reference_date?->format('d M Y') ?: '-' }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->quantity }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ number_format($item->total_price, 0, ',', '.') }}</td></tr>
                         @endforeach
                     </tbody>
                 </table>
@@ -70,35 +70,20 @@
 
         <div class="grid grid-cols-12 gap-4 md:gap-6">
             <div class="col-span-12 xl:col-span-7">
-                <x-common.component-card title="Daftar Invoice" desc="Satu booking bisa memiliki invoice gabungan atau invoice terpisah untuk item tertentu.">
+                <x-common.component-card title="Invoice" desc="Invoice tetap tersedia untuk dikirim ke tamu, tapi tidak ditampilkan sebagai nomor utama di halaman booking.">
                     <div class="space-y-4">
                         @foreach ($booking->invoices as $invoice)
                             <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800">
                                 <div class="flex items-center justify-between gap-3">
                                     <div>
                                         <p class="font-medium text-gray-800 dark:text-white/90">{{ $invoice->label }}</p>
-                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $invoice->invoice_number }} - {{ $invoice->invoice_type === 'combined' ? 'Gabungan' : 'Terpisah' }}</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $invoice->invoice_type === 'combined' ? 'Invoice gabungan' : 'Invoice terpisah' }}</p>
                                     </div>
                                     <x-ui.badge color="{{ $invoice->payment_status === 'lunas' ? 'success' : ($invoice->payment_status === 'cicil' ? 'warning' : 'info') }}">{{ strtoupper($invoice->payment_status) }}</x-ui.badge>
-                                </div>
-                                <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 text-sm text-gray-600 dark:text-gray-300">
-                                    <div><span class="block text-xs text-gray-500 dark:text-gray-400">Subtotal</span><span class="font-medium text-gray-800 dark:text-white/90">{{ number_format($invoice->subtotal, 0, ',', '.') }}</span></div>
-                                    <div><span class="block text-xs text-gray-500 dark:text-gray-400">Total Pembayaran</span><span class="font-medium text-gray-800 dark:text-white/90">{{ number_format($invoice->total_paid, 0, ',', '.') }}</span></div>
-                                    <div><span class="block text-xs text-gray-500 dark:text-gray-400">Sisa</span><span class="font-medium {{ $invoice->remaining_balance > 0 ? 'text-error-600 dark:text-error-400' : 'text-success-600 dark:text-success-400' }}">{{ number_format($invoice->remaining_balance, 0, ',', '.') }}</span></div>
                                 </div>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <a href="{{ route('documents.invoices.show', $invoice) }}" target="_blank" class="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Lihat Invoice</a>
                                     <a href="{{ route('documents.invoices.show', ['invoice' => $invoice, 'download' => 1]) }}" class="rounded-lg border border-brand-200 px-3 py-2 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-800/50 dark:text-brand-300 dark:hover:bg-brand-500/10">Unduh Invoice</a>
-                                </div>
-                                <div class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                                    @forelse ($invoice->items as $item)
-                                        <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-white/[0.03]">
-                                            <span>{{ $item->item_name }}</span>
-                                            <span>{{ number_format($item->total_price, 0, ',', '.') }}</span>
-                                        </div>
-                                    @empty
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Belum ada item di invoice ini.</p>
-                                    @endforelse
                                 </div>
                             </div>
                         @endforeach
@@ -107,7 +92,7 @@
             </div>
 
             <div class="col-span-12 xl:col-span-5">
-                <x-common.component-card title="Pisahkan Invoice" desc="Pilih item booking yang ingin dipindahkan ke invoice baru.">
+                <x-common.component-card title="Pisahkan Invoice" desc="Gunakan hanya jika tamu meminta invoice terpisah. Booking internal tetap satu sumber utama.">
                     <form method="POST" action="{{ route('bookings.invoices.split', $booking) }}" class="space-y-4">
                         @csrf
                         <div>
@@ -139,15 +124,15 @@
             </div>
         </div>
 
-        <x-common.component-card title="Riwayat Pembayaran" desc="Semua pembayaran tercatat terpisah dari total booking dan mempengaruhi saldo tersisa.">
+        <x-common.component-card title="Riwayat Pembayaran Booking" desc="Semua pembayaran tercatat ke booking ini. Finance utama memantau cashflow dari bagian ini, sedangkan invoice hanya referensi dokumen tamu.">
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="min-w-full">
-                    <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Invoice</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Metode</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Penerima</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jumlah</th></tr></thead>
+                    <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Metode</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Penerima</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jumlah</th></tr></thead>
                     <tbody>
                         @forelse ($booking->payments as $payment)
-                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $payment->paid_at?->format('d M Y H:i') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $payment->invoice?->label ?? 'Invoice utama' }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ ucfirst($payment->payment_method) }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ number_format($payment->amount, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $payment->note }}</div><div class="mt-2"><a href="{{ route('documents.payments.receipt', $payment) }}" target="_blank" class="text-xs font-medium text-brand-600 dark:text-brand-300">Lihat Bukti Pembayaran</a></div></td></tr>
+                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $payment->paid_at?->format('d M Y H:i') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ ucfirst($payment->payment_method) }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ number_format($payment->amount, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $payment->note }}</div><div class="mt-2"><a href="{{ route('documents.payments.receipt', $payment) }}" target="_blank" class="text-xs font-medium text-brand-600 dark:text-brand-300">Lihat Bukti Pembayaran</a></div></td></tr>
                         @empty
-                            <tr><td colspan="5" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada pembayaran untuk booking ini.</td></tr>
+                            <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada pembayaran untuk booking ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

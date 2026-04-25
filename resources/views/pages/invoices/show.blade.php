@@ -17,9 +17,9 @@
 
         <div class="grid grid-cols-12 gap-4 md:gap-6">
             <div class="col-span-12 xl:col-span-4">
-                <x-common.component-card title="Informasi Invoice" desc="Ringkasan dokumen dan booking induknya.">
+                <x-common.component-card title="Informasi Invoice" desc="Invoice ini hanya referensi keluar ke tamu. Sumber utama transaksi internal tetap booking induknya.">
                     <div class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-                        <div><span class="font-medium text-gray-800 dark:text-white/90">Booking:</span> {{ $invoice->booking?->booking_code }}</div>
+                        <div><span class="font-medium text-gray-800 dark:text-white/90">Booking Induk:</span> {{ $invoice->booking?->booking_code }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Tamu:</span> {{ $invoice->booking?->guest_name }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Villa:</span> {{ $invoice->booking?->villa?->name }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Unit:</span> {{ $invoice->booking?->villaUnit?->unit_name }}</div>
@@ -29,7 +29,7 @@
                 </x-common.component-card>
             </div>
             <div class="col-span-12 xl:col-span-8">
-                <x-common.component-card title="Ringkasan Nominal" desc="Pantauan tagihan invoice ini.">
+                <x-common.component-card title="Ringkasan Nominal Invoice" desc="Nominal invoice ini tetap diturunkan dari booking dan item yang dipetakan ke invoice.">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Subtotal</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($invoice->subtotal, 0, ',', '.') }}</p></div>
                         <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Total Pembayaran</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($invoice->total_paid, 0, ',', '.') }}</p></div>

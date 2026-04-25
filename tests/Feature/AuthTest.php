@@ -59,6 +59,22 @@ test('finance cannot access migration page', function () {
         ->assertForbidden();
 });
 
+test('finance cannot access invoice module', function () {
+    $financeRole = Role::query()->firstOrCreate([
+        'slug' => 'finance',
+    ], [
+        'name' => 'Finance',
+    ]);
+
+    $user = User::factory()->create();
+    $user->roles()->attach($financeRole);
+
+    actingAs($user);
+
+    get(route('invoices.index'))
+        ->assertForbidden();
+});
+
 test('inactive user cannot login', function () {
     Role::query()->firstOrCreate([
         'slug' => 'master',

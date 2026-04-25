@@ -78,6 +78,10 @@ class CalendarController extends Controller
                 'capacity' => $unit->capacity,
                 'booking_count' => $unit->bookings->count(),
                 'initial_month' => $monthDate->format('Y-m'),
+                'create_booking_url' => $villa ? route('bookings.create', [
+                    'villa' => $villa,
+                    'villa_unit_id' => $unit->id,
+                ]) : null,
                 'bookings' => $unit->bookings->map(fn (Booking $booking): array => [
                     'id' => $booking->id,
                     'booking_code' => $booking->booking_code,

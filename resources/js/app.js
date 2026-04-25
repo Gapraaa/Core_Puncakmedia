@@ -15,6 +15,14 @@ window.ApexCharts = ApexCharts;
 window.flatpickr = flatpickr;
 window.FullCalendar = Calendar;
 
+const APP_TIMEZONE = 'Asia/Jakarta';
+const APP_LOCALE = 'id-ID';
+
+const formatLocalizedDate = (date, options = {}) => date.toLocaleDateString(APP_LOCALE, {
+    timeZone: APP_TIMEZONE,
+    ...options,
+});
+
 Alpine.data('bookingForm', (config) => ({
     villa: config.villa,
     units: config.units ?? [],
@@ -31,6 +39,7 @@ Alpine.data('bookingForm', (config) => ({
     markupAmount: String(config.initialMarkupAmount ?? 0),
     dpAmount: String(config.initialDpAmount ?? 0),
     voucherId: String(config.initialVoucherId ?? ''),
+    showAddons: Boolean(config.initialShowAddons ?? false),
 
     init() {
         if (!this.villa.is_resort && !this.selectedUnitId && this.units.length > 0) {
@@ -166,7 +175,7 @@ Alpine.data('bookingForm', (config) => ({
 
             return {
                 date: dateString,
-                label: currentDate.toLocaleDateString('id-ID', {
+                label: formatLocalizedDate(currentDate, {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',
@@ -252,6 +261,7 @@ Alpine.data('calendarCard', (config) => ({
     currentMonth: config.initialMonth ?? new Date().toISOString().slice(0, 7),
     bookings: config.bookings ?? [],
     showBookingBaseUrl: config.showBookingBaseUrl ?? '',
+    createBookingUrl: config.createBookingUrl ?? '',
 
     prevMonth() {
         this.currentMonth = this.shiftMonth(-1);
@@ -275,7 +285,7 @@ Alpine.data('calendarCard', (config) => ({
     },
 
     get monthLabel() {
-        return this.monthDate.toLocaleDateString('id-ID', {
+        return formatLocalizedDate(this.monthDate, {
             month: 'long',
             year: 'numeric',
         }).toUpperCase();
@@ -303,7 +313,7 @@ Alpine.data('calendarCard', (config) => ({
                     date: dateString,
                     day: cursor.getDate(),
                     is_current_month: cursor.getMonth() === this.monthDate.getMonth(),
-                    is_today: dateString === this.formatDate(new Date()),
+                    is_today: dateString === this.todayDateString(),
                     booking,
                     is_check_in: booking ? booking.check_in === dateString : false,
                     is_check_out: booking ? this.subtractOneDay(booking.check_out) === dateString : false,
@@ -341,6 +351,19 @@ Alpine.data('calendarCard', (config) => ({
         return `${year}-${month}-${day}`;
     },
 
+    todayDateString() {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: APP_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).formatToParts(new Date());
+
+        const getPart = (type) => parts.find((part) => part.type === type)?.value ?? '';
+
+        return `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
+    },
+
     dayClasses(day) {
         if (!day.is_current_month) {
             return 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500';
@@ -361,18 +384,6 @@ Alpine.data('calendarCard', (config) => ({
         return `${day.booking.guest_name} | ${day.booking.booking_code}`;
     },
 
-    dayBadge(day) {
-        if (day.is_check_in) {
-            return 'IN';
-        }
-
-        if (day.is_check_out) {
-            return 'OUT';
-        }
-
-        return 'BOOK';
-    },
-
     bookingUrl(day) {
         if (!day.booking || !this.showBookingBaseUrl) {
             return '#';
@@ -381,12 +392,30 @@ Alpine.data('calendarCard', (config) => ({
         return `${this.showBookingBaseUrl}/${day.booking.id}`;
     },
 
+    createUrl(day) {
+        if (!this.createBookingUrl || day.booking) {
+            return '#';
+        }
+
+        const checkOut = new Date(`${day.date}T00:00:00`);
+        checkOut.setDate(checkOut.getDate() + 1);
+
+        const url = new URL(this.createBookingUrl, window.location.origin);
+        url.searchParams.set('check_in', day.date);
+        url.searchParams.set('check_out', this.formatDate(checkOut));
+
+        return url.toString();
+    },
+
     openBooking(day) {
-        if (!day.booking) {
+        if (day.booking) {
+            window.location.href = this.bookingUrl(day);
             return;
         }
 
-        window.location.href = this.bookingUrl(day);
+        if (this.createBookingUrl) {
+            window.location.href = this.createUrl(day);
+        }
     },
 }));
 
@@ -418,6 +447,17 @@ const initializeMoneyInput = (input) => {
     hiddenInput.name = originalName;
     hiddenInput.value = sanitizeRupiah(input.value || input.dataset.defaultValue || '0');
 
+    const wrapper = document.createElement('div');
+    wrapper.className = 'money-input-wrap';
+
+    const prefix = document.createElement('span');
+    prefix.className = 'money-input-prefix';
+    prefix.textContent = 'Rp';
+
+    input.parentNode?.insertBefore(wrapper, input);
+    wrapper.appendChild(prefix);
+    wrapper.appendChild(input);
+
     input.dataset.moneyInitialized = 'true';
     input.dataset.moneyName = originalName;
     input.removeAttribute('name');
@@ -425,9 +465,10 @@ const initializeMoneyInput = (input) => {
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
     input.spellcheck = false;
+    input.classList.add('money-input-field');
     input.value = formatRupiah(hiddenInput.value);
 
-    input.insertAdjacentElement('afterend', hiddenInput);
+    wrapper.insertAdjacentElement('afterend', hiddenInput);
 
     input.addEventListener('focus', () => {
         if (hiddenInput.value === '0') {

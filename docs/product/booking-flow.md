@@ -52,3 +52,7 @@ The WhatsApp service may use draft-confirm flow before final posting into Core P
   - daftar invoice
   - detail invoice
 - Nama invoice yang dibuat disimpan dalam huruf besar agar konsisten secara operasional
+
+## Update 2026-04-22
+- Standar waktu operasional Core PMS sekarang memakai WIB dengan timezone aplikasi `Asia/Jakarta`
+- Timestamp untuk booking, pembayaran, audit log, invoice, dan dokumen mengikuti standar waktu Indonesia Barat

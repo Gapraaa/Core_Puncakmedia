@@ -889,3 +889,27 @@ pre[class*='language-'] {
     margin-right: -60px !important;
   }
 }
+
+.money-input-wrap {
+  position: relative;
+}
+
+.money-input-prefix {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-500);
+  pointer-events: none;
+}
+
+.money-input-field {
+  padding-left: 3rem !important;
+}
+
+.dark .money-input-prefix {
+  color: rgba(255, 255, 255, 0.7);
+}

@@ -35,22 +35,37 @@ class BookingController extends Controller
 
     public function indexVillas(Request $request): View
     {
-        $villas = Villa::query()
-            ->with('brands')
-            ->withCount('bookings')
-            ->when($request->filled('q'), function (Builder $query) use ($request): void {
-                $keyword = trim((string) $request->string('q'));
-                $query->where('name', 'like', "%{$keyword}%")
-                      ->orWhere('location', 'like', "%{$keyword}%");
-            })
-            ->latest()
-            ->paginate(12)
-            ->withQueryString();
-
         return view('pages.bookings.villas', [
             'title' => 'Daftar Booking per Villa',
-            'villas' => $villas,
+            'villas' => $this->getVillaSelectionPaginator($request),
             'filters' => $request->only('q'),
+            'mode' => 'list',
+            'pageTitle' => 'Daftar Booking Villa',
+            'pageDescription' => 'Pilih villa untuk melihat antrean per reservasi dan ringkasan booking yang sudah masuk.',
+            'searchAction' => route('bookings.index'),
+            'primaryActionLabel' => 'Lihat Booking',
+            'secondaryActionLabel' => 'Buat Booking',
+            'primaryActionRouteName' => 'bookings.list',
+            'secondaryActionRouteName' => 'bookings.create',
+            'emptyStateMessage' => 'Belum ada data villa.',
+        ]);
+    }
+
+    public function selectVillaForCreate(Request $request): View
+    {
+        return view('pages.bookings.villas', [
+            'title' => 'Pilih Villa untuk Booking Baru',
+            'villas' => $this->getVillaSelectionPaginator($request),
+            'filters' => $request->only('q'),
+            'mode' => 'create',
+            'pageTitle' => 'Buat Booking Baru',
+            'pageDescription' => 'Pilih villa terlebih dahulu agar booking baru langsung dibuat dalam konteks villa yang benar.',
+            'searchAction' => route('bookings.selection'),
+            'primaryActionLabel' => 'Buat Booking',
+            'secondaryActionLabel' => 'Lihat Booking',
+            'primaryActionRouteName' => 'bookings.create',
+            'secondaryActionRouteName' => 'bookings.list',
+            'emptyStateMessage' => 'Belum ada data villa yang bisa dipakai untuk membuat booking.',
         ]);
     }
 
@@ -85,13 +100,18 @@ class BookingController extends Controller
         ]);
     }
 
-    public function create(Villa $villa): View
+    public function create(Request $request, Villa $villa): View
     {
         $villaUnits = $villa->units()
             ->with('seasonalPrices')
             ->orderBy('unit_name')
             ->get();
-        $selectedUnitId = old('villa_unit_id', $villa->is_resort ? null : $villaUnits->first()?->id);
+        $requestedUnitId = $request->filled('villa_unit_id')
+            ? $villaUnits->firstWhere('id', (int) $request->integer('villa_unit_id'))?->id
+            : null;
+        $prefillCheckIn = $request->date('check_in')?->format('Y-m-d');
+        $prefillCheckOut = $request->date('check_out')?->format('Y-m-d');
+        $selectedUnitId = old('villa_unit_id', $requestedUnitId ?: ($villa->is_resort ? null : $villaUnits->first()?->id));
         $vouchers = Voucher::query()->where('is_active', true)->orderBy('code')->get();
         $addons = Addon::query()
             ->where('is_active', true)
@@ -164,9 +184,10 @@ class BookingController extends Controller
                 'initialUnitId' => $selectedUnitId,
                 'initialSelectedAddonIds' => old('selected_addon_choices', old('selected_addons', [])),
                 'initialAddonQuantities' => old('addon_choice_quantities', old('addon_quantities', [])),
-                'initialCheckIn' => old('check_in', ''),
-                'initialCheckOut' => old('check_out', ''),
+                'initialCheckIn' => old('check_in', $prefillCheckIn ?? ''),
+                'initialCheckOut' => old('check_out', $prefillCheckOut ?? ''),
                 'initialVoucherId' => old('voucher_id', ''),
+                'initialShowAddons' => collect(old('selected_addon_choices', old('selected_addons', [])))->isNotEmpty(),
                 'initialManualDiscountAmount' => (int) old('manual_discount_amount', 0),
                 'initialMarkupAmount' => (int) old('markup_amount', 0),
                 'initialDpAmount' => (int) old('dp_amount', 0),
@@ -411,5 +432,23 @@ class BookingController extends Controller
             'total_price' => $price * $quantity,
             'notes' => $notes,
         ];
+    }
+
+    protected function getVillaSelectionPaginator(Request $request)
+    {
+        return Villa::query()
+            ->with('brands')
+            ->withCount('bookings')
+            ->when($request->filled('q'), function (Builder $query) use ($request): void {
+                $keyword = trim((string) $request->string('q'));
+                $query->where(function (Builder $innerQuery) use ($keyword): void {
+                    $innerQuery
+                        ->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('location', 'like', "%{$keyword}%");
+                });
+            })
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
     }
 }

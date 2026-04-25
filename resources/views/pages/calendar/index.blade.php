@@ -12,7 +12,7 @@
         <x-common.component-card title="Filter Kalender" desc="Filter ringan tetap tersedia, tapi semua kartu tetap tampil agar mudah dicari langsung dari browser.">
             <form method="GET" action="{{ route('calendar') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="xl:col-span-2">
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Cari Villa / Unit / Lokasi / Brand</label>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Cari Villa / Unit / Lokasi</label>
                     <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Contoh: Kamela, Unit A, Cisarua" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
                 </div>
                 <div>
@@ -51,6 +51,7 @@
                             'initialMonth' => $card['initial_month'],
                             'bookings' => $card['bookings'],
                             'showBookingBaseUrl' => url('/bookings'),
+                            'createBookingUrl' => $card['create_booking_url'],
                         ]))"
                         class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]"
                     >
@@ -85,9 +86,6 @@
                                                 >
                                                     <div class="flex items-start justify-between gap-1">
                                                         <span class="font-semibold" :class="{ 'underline underline-offset-2': day.is_today }" x-text="day.day"></span>
-                                                        <template x-if="day.booking">
-                                                            <span class="rounded bg-white/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide" x-text="dayBadge(day)"></span>
-                                                        </template>
                                                     </div>
                                                 </button>
                                             </template>
@@ -109,11 +107,7 @@
                                     </div>
                                 </div>
 
-                                <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                                    <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900/40">
-                                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Brand</div>
-                                        <div class="mt-1 text-sm font-medium text-gray-800 dark:text-white/90">{{ $card['brands'] }}</div>
-                                    </div>
+                                    <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                                     <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900/40">
                                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Lokasi</div>
                                         <div class="mt-1 text-sm font-medium text-gray-800 dark:text-white/90">{{ $card['location'] }}</div>
@@ -129,7 +123,7 @@
                                 </div>
 
                                 <div class="mt-5 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 text-sm text-brand-700 dark:border-brand-900/40 dark:bg-brand-500/10 dark:text-brand-300">
-                                    Klik tanggal merah untuk membuka detail booking yang mengisi tanggal tersebut.
+                                    Klik tanggal merah untuk membuka detail booking. Klik tanggal hijau yang kosong untuk langsung membuat booking baru dari tanggal tersebut.
                                 </div>
 
                                 <div class="mt-5 flex flex-wrap gap-3">

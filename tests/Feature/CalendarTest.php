@@ -92,3 +92,42 @@ test('calendar page renders all villa and resort unit cards', function () {
         ->assertSee('Ctrl + F', false)
         ->assertDontSee('Booking Bulan Ini', false);
 });
+
+test('booking create page accepts prefilled calendar query values', function () {
+    $suffix = Str::lower(Str::random(6));
+
+    $brand = Brand::query()->create([
+        'name' => 'Ngevillayuk ' . $suffix,
+        'slug' => 'ngevillayuk-' . $suffix,
+    ]);
+
+    $villa = Villa::query()->create([
+        'name' => 'Villa Kalender',
+        'slug' => 'villa-kalender-' . $suffix,
+        'location' => 'Cisarua',
+        'is_resort' => false,
+        'status' => 'active',
+    ]);
+    $villa->brands()->attach($brand->id);
+
+    $unit = VillaUnit::query()->create([
+        'villa_id' => $villa->id,
+        'unit_name' => 'Villa Kalender',
+        'unit_type' => 'private',
+        'capacity' => 8,
+        'price_weekday' => 1000000,
+        'price_semi_weekend' => 1200000,
+        'price_weekend' => 1500000,
+        'status' => 'active',
+    ]);
+
+    get(route('bookings.create', [
+        'villa' => $villa,
+        'villa_unit_id' => $unit->id,
+        'check_in' => '2026-04-25',
+        'check_out' => '2026-04-26',
+    ]))
+        ->assertOk()
+        ->assertSee('value="2026-04-25"', false)
+        ->assertSee('value="2026-04-26"', false);
+});

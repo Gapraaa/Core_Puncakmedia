@@ -36,14 +36,25 @@ class MenuHelper
                     [
                         'icon' => 'tables',
                         'name' => 'Booking',
-                        'path' => route('bookings.index'),
                         'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
+                        'subItems' => [
+                            [
+                                'name' => 'Daftar Booking',
+                                'path' => route('bookings.index'),
+                                'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
+                            ],
+                            [
+                                'name' => 'Buat Booking',
+                                'path' => route('bookings.selection'),
+                                'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
+                            ],
+                        ],
                     ],
                     [
                         'icon' => 'pages',
                         'name' => 'Invoice',
                         'path' => route('invoices.index'),
-                        'roles' => ['master', 'superadmin', 'head-office', 'finance', 'admin-sales'],
+                        'roles' => ['master', 'superadmin', 'head-office', 'admin-sales'],
                     ],
                     [
                         'icon' => 'forms',

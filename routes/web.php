@@ -76,6 +76,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::middleware('role:master,superadmin,head-office,finance,admin-sales')->group(function (): void {
         Route::get('bookings', [BookingController::class, 'indexVillas'])->name('bookings.index');
+        Route::get('bookings/buat', [BookingController::class, 'selectVillaForCreate'])->name('bookings.selection');
         Route::get('bookings/villas/{villa}', [BookingController::class, 'index'])->name('bookings.list');
         Route::get('bookings/villas/{villa}/create', [BookingController::class, 'create'])->name('bookings.create');
         Route::post('bookings/villas/{villa}', [BookingController::class, 'store'])->name('bookings.store');
@@ -85,19 +86,24 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::post('bookings/{booking}/invoices/split', [BookingInvoiceController::class, 'split'])->name('bookings.invoices.split');
         Route::post('bookings/{booking}/payments', [PaymentController::class, 'store'])->name('bookings.payments.store');
 
+        Route::get('documents/invoices/{invoice}', [DocumentController::class, 'showInvoice'])->name('documents.invoices.show');
+        Route::get('documents/payments/{payment}/receipt', [DocumentController::class, 'showReceipt'])->name('documents.payments.receipt');
+    });
+
+    Route::middleware('role:master,superadmin,head-office,admin-sales')->group(function (): void {
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/villas/{villa}', [InvoiceController::class, 'showVilla'])->name('invoices.villa');
         Route::get('invoices/villas/{villa}/units', [InvoiceController::class, 'showVillaUnits'])->name('invoices.units');
         Route::get('invoices/villas/{villa}/units/{villaUnit}', [InvoiceController::class, 'showUnit'])->name('invoices.unit');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
-
-        Route::get('documents/invoices/{invoice}', [DocumentController::class, 'showInvoice'])->name('documents.invoices.show');
-        Route::get('documents/payments/{payment}/receipt', [DocumentController::class, 'showReceipt'])->name('documents.payments.receipt');
     });
 
-    Route::get('payments', [PaymentController::class, 'index'])
-        ->middleware('role:master,superadmin,head-office,finance')
-        ->name('payments.index');
+    Route::middleware('role:master,superadmin,head-office,finance')->group(function (): void {
+        Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::get('payments/villas/{villa}', [PaymentController::class, 'showVilla'])->name('payments.villa');
+        Route::get('payments/villas/{villa}/units', [PaymentController::class, 'showVillaUnits'])->name('payments.units');
+        Route::get('payments/villas/{villa}/units/{villaUnit}', [PaymentController::class, 'showUnit'])->name('payments.unit');
+    });
 
     Route::prefix('reports')
         ->middleware('role:master,superadmin,head-office,finance')

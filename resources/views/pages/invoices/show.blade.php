@@ -22,7 +22,9 @@
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Booking Induk:</span> {{ $invoice->booking?->booking_code }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Tamu:</span> {{ $invoice->booking?->guest_name }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Villa:</span> {{ $invoice->booking?->villa?->name }}</div>
-                        <div><span class="font-medium text-gray-800 dark:text-white/90">Unit:</span> {{ $invoice->booking?->villaUnit?->unit_name }}</div>
+                        @if ($invoice->booking?->villa?->is_resort)
+                            <div><span class="font-medium text-gray-800 dark:text-white/90">Unit:</span> {{ $invoice->booking?->villaUnit?->unit_name }}</div>
+                        @endif
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Periode:</span> {{ $invoice->booking?->check_in?->format('d M Y') }} - {{ $invoice->booking?->check_out?->format('d M Y') }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Status:</span> <x-ui.badge color="{{ $invoice->payment_status === 'lunas' ? 'success' : ($invoice->payment_status === 'cicil' ? 'warning' : 'info') }}">{{ strtoupper($invoice->payment_status) }}</x-ui.badge></div>
                     </div>

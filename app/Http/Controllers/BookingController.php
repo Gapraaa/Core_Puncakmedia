@@ -188,6 +188,7 @@ class BookingController extends Controller
                 'initialCheckOut' => old('check_out', $prefillCheckOut ?? ''),
                 'initialVoucherId' => old('voucher_id', ''),
                 'initialShowAddons' => collect(old('selected_addon_choices', old('selected_addons', [])))->isNotEmpty(),
+                'todayDate' => now()->format('Y-m-d'),
                 'initialManualDiscountAmount' => (int) old('manual_discount_amount', 0),
                 'initialMarkupAmount' => (int) old('markup_amount', 0),
                 'initialDpAmount' => (int) old('dp_amount', 0),
@@ -250,6 +251,7 @@ class BookingController extends Controller
                 'villa_unit_id' => $data['villa_unit_id'],
                 'check_in' => $data['check_in'],
                 'check_out' => $data['check_out'],
+                'final_payment_due_date' => $this->calculateFinalPaymentDueDate($checkIn, now()),
                 'voucher_id' => $data['voucher_id'] ?? null,
                 'manual_discount_amount' => (int) ($data['manual_discount_amount'] ?? 0),
                 'manual_discount_reason' => $data['manual_discount_reason'] ?? null,
@@ -306,6 +308,7 @@ class BookingController extends Controller
                 'unit' => $booking->villaUnit?->unit_name,
                 'check_in' => optional($booking->check_in)->format('Y-m-d'),
                 'check_out' => optional($booking->check_out)->format('Y-m-d'),
+                'final_payment_due_date' => optional($booking->final_payment_due_date)->format('Y-m-d'),
                 'grand_total' => $booking->grand_total,
                 'total_paid' => $booking->total_paid,
                 'remaining_balance' => $booking->remaining_balance,
@@ -346,6 +349,19 @@ class BookingController extends Controller
     protected function generateBookingCode(): string
     {
         return 'BOOK-' . strtoupper(Str::random(8));
+    }
+
+    protected function calculateFinalPaymentDueDate(Carbon $checkIn, Carbon $dpPaidAt): Carbon
+    {
+        $dpDate = $dpPaidAt->copy()->startOfDay();
+        $checkInDate = $checkIn->copy()->startOfDay();
+        $sevenDaysBeforeCheckIn = $checkInDate->copy()->subDays(7);
+
+        if ($dpDate->lte($sevenDaysBeforeCheckIn)) {
+            return $checkInDate->copy()->subDays(3);
+        }
+
+        return $checkInDate;
     }
 
     protected function buildAddonItems(array $data, int $nightsCount)
@@ -437,7 +453,7 @@ class BookingController extends Controller
     protected function getVillaSelectionPaginator(Request $request)
     {
         return Villa::query()
-            ->with('brands')
+            ->with(['brands', 'units'])
             ->withCount('bookings')
             ->when($request->filled('q'), function (Builder $query) use ($request): void {
                 $keyword = trim((string) $request->string('q'));

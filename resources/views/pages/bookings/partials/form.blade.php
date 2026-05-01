@@ -1,14 +1,19 @@
-<div x-data="bookingForm(@js($bookingPreviewConfig))" class="grid grid-cols-12 gap-4 md:gap-6">
-    <div class="col-span-12 xl:col-span-8">
-        <x-common.component-card title="Form Booking" desc="Input booking lengkap dengan data tamu, villa, pricing, dan pembayaran DP.">
+<div x-data="bookingForm(@js($bookingPreviewConfig))" class="space-y-6">
+    <div>
+        <x-common.component-card title="Form Booking" desc="Isi data booking dalam satu halaman, cek ringkasan harga singkat, lalu pastikan lagi di modal konfirmasi sebelum booking disimpan.">
             <form method="POST" action="{{ route('bookings.store', $villa) }}" class="space-y-6">
                 @csrf
 
                 {{-- Villa & Brand --}}
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div class="ops-panel-soft space-y-4">
+                    <div>
+                        <h3 class="ops-section-title text-base">Identitas Properti</h3>
+                        <p class="ops-section-desc mt-1">Pilih brand dan pastikan unit yang dipakai sudah benar sebelum lanjut ke data tamu.</p>
+                    </div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Brand</label>
-                        <select name="brand_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                        <select name="brand_id" class="ops-input">
                             <option value="">Pilih brand</option>
                             @foreach ($brands as $brand)<option value="{{ $brand->id }}" @selected(old('brand_id', request('brand_id')) == $brand->id)>{{ $brand->name }}</option>@endforeach
                         </select>
@@ -17,34 +22,35 @@
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Villa</label>
                         <input type="hidden" name="villa_id" value="{{ $villa->id }}">
-                        <input type="text" value="{{ $villa->name }}" readonly disabled class="h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-500 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400" />
+                        <input type="text" value="{{ $villa->name }}" readonly disabled class="ops-input !bg-gray-50 !text-gray-500 dark:!bg-gray-800 dark:!text-gray-400" />
                         @error('villa_id')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
                         @if ($villa->is_resort)
-                            <select name="villa_unit_id" x-model="selectedUnitId" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                            <select name="villa_unit_id" x-model="selectedUnitId" class="ops-input">
                                 <option value="">Pilih unit</option>
                                 @foreach ($villaUnits as $villaUnit)<option value="{{ $villaUnit->id }}" @selected(old('villa_unit_id', request('villa_unit_id')) == $villaUnit->id)>{{ $villaUnit->unit_name }}</option>@endforeach
                             </select>
                         @else
                             <input type="hidden" name="villa_unit_id" x-model="selectedUnitId">
-                            <input type="text" :value="selectedUnit ? selectedUnit.name : 'Unit belum tersedia'" readonly disabled class="h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-500 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400" />
+                            <input type="text" :value="selectedUnit ? selectedUnit.name : 'Unit belum tersedia'" readonly disabled class="ops-input !bg-gray-50 !text-gray-500 dark:!bg-gray-800 dark:!text-gray-400" />
                         @endif
                         @error('villa_unit_id')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                     </div>
                 </div>
+                </div>
 
                 {{-- Data Tamu --}}
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Tamu</label><input type="text" name="guest_name" value="{{ old('guest_name') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('guest_name')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">No. Telepon</label><input type="text" name="guest_phone" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')" value="{{ old('guest_phone') }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('guest_phone')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Tamu</label><input type="text" name="guest_name" value="{{ old('guest_name') }}" class="ops-input" />@error('guest_name')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">No. Telepon</label><input type="text" name="guest_phone" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')" value="{{ old('guest_phone') }}" class="ops-input" />@error('guest_phone')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
                 </div>
 
                 {{-- Tanggal --}}
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-in</label><input x-model="checkIn" onclick="this.showPicker()" type="date" name="check_in" value="{{ old('check_in', request('check_in')) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('check_in')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-out</label><input x-model="checkOut" :min="checkIn" onclick="this.showPicker()" type="date" name="check_out" value="{{ old('check_out', request('check_out')) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />@error('check_out')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-in</label><input x-model="checkIn" onclick="this.showPicker()" type="date" name="check_in" value="{{ old('check_in', request('check_in')) }}" class="ops-input" />@error('check_in')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-out</label><input x-model="checkOut" :min="checkIn" onclick="this.showPicker()" type="date" name="check_out" value="{{ old('check_out', request('check_out')) }}" class="ops-input" />@error('check_out')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
                 </div>
 
                 {{-- Add-ons --}}
@@ -126,23 +132,86 @@
                     </div>
                 </div>
 
-                <div class="space-y-6 rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-800 dark:bg-white/[0.02]">
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div class="space-y-4 rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-800 dark:bg-white/[0.02]">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Voucher</label>
-                            <select name="voucher_id" x-model="voucherId" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
-                                <option value="">Tanpa voucher</option>
-                                @foreach ($vouchers as $voucher)<option value="{{ $voucher->id }}" @selected(old('voucher_id') == $voucher->id)>{{ $voucher->code }}</option>@endforeach
-                            </select>
+                            <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90">Voucher, Diskon, dan Markup</h4>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Bagian ini opsional. Buka hanya jika kamu memang perlu menambahkan penyesuaian harga.</p>
                         </div>
-                        <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Diskon Manual (Rupiah)</label><input type="number" step="1" min="0" name="manual_discount_amount" value="{{ old('manual_discount_amount', 0) }}" data-money x-on:input="syncMoney($event, 'manualDiscountAmount')" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                        <button
+                            type="button"
+                            @click="showPricingAdjustments = !showPricingAdjustments"
+                            class="inline-flex items-center justify-center rounded-lg border border-brand-200 px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-800/60 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                            x-text="showPricingAdjustments ? 'Sembunyikan Pengaturan Harga' : (hasPricingAdjustments ? 'Lihat Pengaturan Harga Aktif' : 'Pakai Voucher / Markup')"
+                        ></button>
                     </div>
 
-                    <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Alasan Diskon Manual</label><textarea name="manual_discount_reason" rows="3" class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">{{ old('manual_discount_reason') }}</textarea>@error('manual_discount_reason')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+                    <div x-show="showPricingAdjustments" class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Voucher</label>
+                                <select name="voucher_id" x-model="voucherId" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                                    <option value="">Tanpa voucher</option>
+                                    @foreach ($vouchers as $voucher)<option value="{{ $voucher->id }}" @selected(old('voucher_id') == $voucher->id)>{{ $voucher->code }}</option>@endforeach
+                                </select>
+                            </div>
+                            <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Diskon Manual (Rupiah)</label><input type="number" step="1" min="0" name="manual_discount_amount" value="{{ old('manual_discount_amount', 0) }}" data-money x-on:input="syncMoney($event, 'manualDiscountAmount')" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                        </div>
 
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Markup Harga (Rupiah)</label><input type="number" step="1" min="0" name="markup_amount" value="{{ old('markup_amount', 0) }}" data-money x-on:input="syncMoney($event, 'markupAmount')" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
-                        <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catatan Markup</label><input type="text" name="markup_reason" value="{{ old('markup_reason') }}" placeholder="Contoh: surcharge libur khusus" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                        <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Alasan Diskon Manual</label><textarea name="manual_discount_reason" rows="2" class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">{{ old('manual_discount_reason') }}</textarea>@error('manual_discount_reason')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror</div>
+
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Markup Harga (Rupiah)</label><input type="number" step="1" min="0" name="markup_amount" value="{{ old('markup_amount', 0) }}" data-money x-on:input="syncMoney($event, 'markupAmount')" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                            <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catatan Markup</label><input type="text" name="markup_reason" value="{{ old('markup_reason') }}" placeholder="Contoh: surcharge libur khusus" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-brand-200 bg-brand-50/40 p-5 dark:border-brand-800/50 dark:bg-brand-500/10">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90">Preview Harga Booking</h4>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ringkasan cepat sebelum lanjut ke konfirmasi akhir.</p>
+                        </div>
+                        <div class="text-left md:text-right">
+                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Unit</p>
+                            <p class="text-sm font-semibold text-gray-800 dark:text-white/90" x-text="selectedUnit ? selectedUnit.name : 'Belum dipilih'"></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Malam</p>
+                            <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="`${nightsCount} malam`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Harga Villa</p>
+                            <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(subtotalNight)}`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Add-ons</p>
+                            <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(subtotalAddon)}`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Markup</p>
+                            <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(markupValue)}`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Diskon</p>
+                            <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(voucherDiscountValue + manualDiscountValue)}`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Grand Total</p>
+                            <p class="mt-1 text-sm font-semibold text-brand-600 dark:text-brand-300" x-text="`Rp ${formatMoney(grandTotal)}`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Sisa</p>
+                            <p class="mt-1 text-sm font-semibold text-error-600 dark:text-error-400" x-text="`Rp ${formatMoney(remainingBalance)}`"></p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900/50 col-span-2 md:col-span-2 xl:col-span-1">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pelunasan</p>
+                            <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="finalPaymentDueLabel"></p>
+                        </div>
                     </div>
                 </div>
 
@@ -184,77 +253,97 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-3"><a href="{{ route('bookings.index') }}" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Batal</a><button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Simpan Booking + DP</button></div>
+                <div class="flex items-center justify-end gap-3">
+                    <a href="{{ route('bookings.index') }}" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Batal</a>
+                    <button type="button" @click="openConfirmationModal()" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Lanjutkan Konfirmasi</button>
+                </div>
             </form>
         </x-common.component-card>
     </div>
 
-    <div class="col-span-12 xl:col-span-4 space-y-6">
-        <x-common.component-card title="Preview Booking" desc="Ringkasan harga akan ikut berubah saat unit, tanggal, add-on, diskon, markup, atau DP diubah.">
-            <div class="space-y-4 text-sm text-gray-600 dark:text-gray-300">
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
-                    <div class="flex items-center justify-between">
-                        <span>Unit Terpilih</span>
-                        <span class="font-medium text-gray-800 dark:text-white/90" x-text="selectedUnit ? selectedUnit.name : 'Belum dipilih'"></span>
-                    </div>
-                    <div class="mt-2 flex items-center justify-between">
-                        <span>Jumlah Malam</span>
-                        <span class="font-medium text-gray-800 dark:text-white/90" x-text="`${nightsCount} malam`"></span>
-                    </div>
+    <div
+        x-cloak
+        x-show="showConfirmationModal"
+        x-transition.opacity
+        @keydown.escape.window="closeConfirmationModal()"
+        class="fixed inset-0 z-99999 flex items-center justify-center bg-gray-900/60 px-4 py-6"
+    >
+        <div @click.away="closeConfirmationModal()" class="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
+            <div class="flex items-start justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Konfirmasi Booking</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Periksa ringkasan booking terlebih dahulu sebelum data disimpan ke sistem.</p>
                 </div>
+                <button type="button" @click="closeConfirmationModal()" class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Tutup</button>
+            </div>
 
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
-                    <h4 class="font-medium text-gray-800 dark:text-white/90">Harga per malam</h4>
-                    <div class="mt-3 space-y-3" x-show="previewNights.length > 0">
-                        <template x-for="night in previewNights" :key="night.date">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <p class="font-medium text-gray-800 dark:text-white/90" x-text="night.label"></p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="night.note"></p>
-                                </div>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(night.amount)}`"></p>
+            <div class="max-h-[calc(90vh-150px)] overflow-y-auto px-6 py-5">
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="space-y-4 text-sm text-gray-600 dark:text-gray-300">
+                        <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
+                            <div class="flex items-center justify-between">
+                                <span>Unit Terpilih</span>
+                                <span class="font-medium text-gray-800 dark:text-white/90" x-text="selectedUnit ? selectedUnit.name : 'Belum dipilih'"></span>
                             </div>
-                        </template>
-                    </div>
-                    <p x-show="previewNights.length === 0" class="mt-3 text-xs text-gray-500 dark:text-gray-400">Pilih unit dan tanggal untuk melihat harga per malam.</p>
-                </div>
-
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
-                    <h4 class="font-medium text-gray-800 dark:text-white/90">Preview Add-ons</h4>
-                    <div class="mt-3 space-y-3" x-show="previewAddons.length > 0">
-                        <template x-for="addon in previewAddons" :key="addon.id">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <p class="font-medium text-gray-800 dark:text-white/90" x-text="addon.name"></p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="addon.summary"></p>
-                                </div>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(addon.total)}`"></p>
+                            <div class="mt-2 flex items-center justify-between">
+                                <span>Jumlah Malam</span>
+                                <span class="font-medium text-gray-800 dark:text-white/90" x-text="`${nightsCount} malam`"></span>
                             </div>
-                        </template>
-                    </div>
-                    <p x-show="previewAddons.length === 0" class="mt-3 text-xs text-gray-500 dark:text-gray-400">Belum ada add-on yang dipilih.</p>
-                </div>
+                        </div>
 
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800 space-y-3">
-                    <div class="flex items-center justify-between"><span>Subtotal harga per malam</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(subtotalNight)}`"></span></div>
-                    <div class="flex items-center justify-between"><span>Subtotal add-ons</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(subtotalAddon)}`"></span></div>
-                    <div class="flex items-center justify-between"><span>Markup harga</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(markupValue)}`"></span></div>
-                    <div class="flex items-center justify-between"><span>Diskon voucher</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(voucherDiscountValue)}`"></span></div>
-                    <div class="flex items-center justify-between"><span>Diskon manual</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(manualDiscountValue)}`"></span></div>
-                    <div class="border-t border-dashed border-gray-200 pt-3 dark:border-gray-700 flex items-center justify-between"><span class="font-semibold text-gray-800 dark:text-white/90">Grand Total</span><span class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(grandTotal)}`"></span></div>
-                    <div class="flex items-center justify-between"><span>DP Masuk</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(dpValue)}`"></span></div>
-                    <div class="flex items-center justify-between"><span>Sisa Tagihan</span><span class="font-medium text-error-600 dark:text-error-400" x-text="`Rp ${formatMoney(remainingBalance)}`"></span></div>
+                        <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
+                            <h4 class="font-medium text-gray-800 dark:text-white/90">Harga per malam</h4>
+                            <div class="mt-3 space-y-3" x-show="previewNights.length > 0">
+                                <template x-for="night in previewNights" :key="night.date">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="font-medium text-gray-800 dark:text-white/90" x-text="night.label"></p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="night.note"></p>
+                                        </div>
+                                        <p class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(night.amount)}`"></p>
+                                    </div>
+                                </template>
+                            </div>
+                            <p x-show="previewNights.length === 0" class="mt-3 text-xs text-gray-500 dark:text-gray-400">Pilih unit dan tanggal untuk melihat harga per malam.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 text-sm text-gray-600 dark:text-gray-300">
+                        <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
+                            <h4 class="font-medium text-gray-800 dark:text-white/90">Preview Add-ons</h4>
+                            <div class="mt-3 space-y-3" x-show="previewAddons.length > 0">
+                                <template x-for="addon in previewAddons" :key="addon.id">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="font-medium text-gray-800 dark:text-white/90" x-text="addon.name"></p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="addon.summary"></p>
+                                        </div>
+                                        <p class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(addon.total)}`"></p>
+                                    </div>
+                                </template>
+                            </div>
+                            <p x-show="previewAddons.length === 0" class="mt-3 text-xs text-gray-500 dark:text-gray-400">Belum ada add-on yang dipilih.</p>
+                        </div>
+
+                        <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800 space-y-3">
+                            <div class="flex items-center justify-between"><span>Subtotal harga per malam</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(subtotalNight)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>Subtotal add-ons</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(subtotalAddon)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>Markup harga</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(markupValue)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>Diskon voucher</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(voucherDiscountValue)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>Diskon manual</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(manualDiscountValue)}`"></span></div>
+                            <div class="border-t border-dashed border-gray-200 pt-3 dark:border-gray-700 flex items-center justify-between"><span class="font-semibold text-gray-800 dark:text-white/90">Grand Total</span><span class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(grandTotal)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>DP Masuk</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="`Rp ${formatMoney(dpValue)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>Sisa Tagihan</span><span class="font-medium text-error-600 dark:text-error-400" x-text="`Rp ${formatMoney(remainingBalance)}`"></span></div>
+                            <div class="flex items-center justify-between"><span>Target Pelunasan</span><span class="font-medium text-gray-800 dark:text-white/90" x-text="finalPaymentDueLabel"></span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </x-common.component-card>
 
-        <x-common.component-card title="Catatan Booking" desc="Alur booking sekarang lebih transparan saat input.">
-            <div class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">Untuk villa biasa, unit akan otomatis terisi. Untuk resort, admin tetap memilih unit yang tersedia.</div>
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">Harga per malam mengikuti weekday, semi weekend, weekend, lalu dioverride oleh harga high season jika ada.</div>
-                <div class="rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">Markup harga bisa dipakai untuk penyesuaian manual sebelum booking disimpan.</div>
+            <div class="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-800">
+                <button type="button" @click="closeConfirmationModal()" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Kembali Edit</button>
+                <button type="button" @click="submitConfirmedBooking()" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Konfirmasi & Simpan Booking</button>
             </div>
-        </x-common.component-card>
+        </div>
     </div>
-
 </div>

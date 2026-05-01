@@ -145,7 +145,10 @@
             <div class="card">
                 <h2>Data Booking</h2>
                 <p class="strong">{{ strtoupper($payment->booking?->booking_code ?? '-') }}</p>
-                <p class="muted">{{ strtoupper(($payment->booking?->villa?->name ?? '-') . ' - ' . ($payment->booking?->villaUnit?->unit_name ?? '-')) }}</p>
+                <p class="muted">{{ strtoupper($payment->booking?->villa?->name ?? '-') }}</p>
+                @if ($payment->booking?->villa?->is_resort)
+                    <p class="muted">UNIT: {{ strtoupper($payment->booking?->villaUnit?->unit_name ?? '-') }}</p>
+                @endif
                 <p class="muted">{{ strtoupper($payment->invoice?->label ?? 'INVOICE UTAMA') }}</p>
             </div>
         </div>

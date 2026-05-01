@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Villa;
 use App\Models\VillaUnit;
 use App\Models\Voucher;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
@@ -169,6 +170,7 @@ test('booking creation includes DP and sets confirmed + dp status', function () 
     expect($booking->invoices()->count())->toBe(1);
     expect($booking->payments->first()->invoice_id)->not->toBeNull();
     expect($booking->invoices()->first()?->label)->toBe('INVOICE UTAMA');
+    expect($booking->final_payment_due_date?->format('Y-m-d'))->toBe('2026-04-16');
 
     $nightPrices = $booking->items
         ->where('item_type', 'night')
@@ -179,6 +181,38 @@ test('booking creation includes DP and sets confirmed + dp status', function () 
 
     expect($nightPrices)->toBe([100000, 150000, 250000]);
     expect($booking->items->where('item_type', 'addon')->first()?->unit_price)->toBe(10000);
+});
+
+test('final payment due date is set to h-3 when dp is paid h-7 or earlier', function () {
+    Carbon::setTestNow('2026-04-01 10:00:00');
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
+        'check_in' => '2026-04-10',
+        'check_out' => '2026-04-12',
+    ]))->assertRedirect();
+
+    $booking = Booking::query()->latest('id')->firstOrFail();
+
+    expect($booking->final_payment_due_date?->format('Y-m-d'))->toBe('2026-04-07');
+
+    Carbon::setTestNow();
+});
+
+test('final payment due date is set to check-in when dp is paid near arrival', function () {
+    Carbon::setTestNow('2026-04-01 10:00:00');
+    $data = createMasterData();
+
+    post(route('bookings.store', $data['villa']), createBookingPayload($data, [
+        'check_in' => '2026-04-04',
+        'check_out' => '2026-04-06',
+    ]))->assertRedirect();
+
+    $booking = Booking::query()->latest('id')->firstOrFail();
+
+    expect($booking->final_payment_due_date?->format('Y-m-d'))->toBe('2026-04-04');
+
+    Carbon::setTestNow();
 });
 
 test('booking creation supports addon options with quantity-based pricing', function () {

@@ -11,12 +11,10 @@
                 ['label' => 'Total Unit', 'value' => $villaUnitCount, 'hint' => 'Unit yang bisa dipakai untuk booking'],
                 ['label' => 'Total Booking', 'value' => $bookingCount, 'hint' => 'Seluruh booking yang sudah tercatat'],
             ] as $metric)
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ $metric['label'] }}</span>
-                    <div class="mt-3 flex items-end justify-between">
-                        <h3 class="text-3xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($metric['value'], 0, ',', '.') }}</h3>
-                    </div>
-                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">{{ $metric['hint'] }}</p>
+                <div class="ops-kpi-card">
+                    <span class="ops-kpi-label">{{ $metric['label'] }}</span>
+                    <h3 class="ops-kpi-value text-3xl">{{ number_format($metric['value'], 0, ',', '.') }}</h3>
+                    <p class="ops-kpi-note">{{ $metric['hint'] }}</p>
                 </div>
             @endforeach
         </div>
@@ -35,6 +33,24 @@
                     </div>
                 </div>
             </x-common.component-card>
+        </div>
+
+        <div class="col-span-12 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Outstanding</div>
+                <div class="ops-kpi-value">Rp {{ number_format($totalOutstanding, 0, ',', '.') }}</div>
+                <div class="ops-kpi-note">Akumulasi sisa tagihan seluruh booking aktif.</div>
+            </div>
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Check-in Terdekat</div>
+                <div class="ops-kpi-value">{{ number_format($upcomingCheckInsCount, 0, ',', '.') }}</div>
+                <div class="ops-kpi-note">Jumlah booking yang perlu disiapkan oleh tim operasional.</div>
+            </div>
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Komposisi Status</div>
+                <div class="ops-kpi-value">{{ $paymentStatusCounts['dp'] }} / {{ $paymentStatusCounts['cicil'] }} / {{ $paymentStatusCounts['lunas'] }}</div>
+                <div class="ops-kpi-note">DP, cicil, dan lunas dalam satu pandangan cepat.</div>
+            </div>
         </div>
 
         <div class="col-span-12 xl:col-span-5">
@@ -66,25 +82,25 @@
         <div class="col-span-12 xl:col-span-7">
             <x-common.component-card title="Check-in Mendatang" desc="Booking terdekat yang perlu dipantau oleh tim operasional.">
                 <div class="overflow-x-auto custom-scrollbar">
-                    <table class="min-w-full">
+                    <table class="ops-compact-table">
                         <thead>
                             <tr class="border-b border-gray-100 dark:border-gray-800">
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Booking</th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tamu</th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Sisa Saldo</th>
+                                <th>Tanggal</th>
+                                <th>Booking</th>
+                                <th>Tamu</th>
+                                <th>Sisa Saldo</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($upcomingCheckIns as $booking)
-                                <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800">
-                                    <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $booking->check_in->format('d M Y') }}</td>
-                                    <td class="px-5 py-4 text-sm font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $booking->villa?->name }} - {{ $booking->villaUnit?->unit_name }}</div></td>
-                                    <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $booking->guest_name }}</td>
-                                    <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">Rp {{ number_format($booking->remaining_balance, 0, ',', '.') }}</td>
+                                <tr>
+                                    <td>{{ $booking->check_in->format('d M Y') }}</td>
+                                    <td class="font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $booking->villa?->name }} - {{ $booking->villaUnit?->unit_name }}</div></td>
+                                    <td>{{ $booking->guest_name }}</td>
+                                    <td>Rp {{ number_format($booking->remaining_balance, 0, ',', '.') }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="4" class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada check-in mendatang.</td></tr>
+                                <tr><td colspan="4" class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada check-in mendatang.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

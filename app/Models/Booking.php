@@ -21,6 +21,7 @@ class Booking extends Model
         'villa_unit_id',
         'check_in',
         'check_out',
+        'final_payment_due_date',
         'total_before_discount',
         'voucher_id',
         'voucher_discount_amount',
@@ -40,6 +41,7 @@ class Booking extends Model
         return [
             'check_in' => 'date',
             'check_out' => 'date',
+            'final_payment_due_date' => 'date',
         ];
     }
 

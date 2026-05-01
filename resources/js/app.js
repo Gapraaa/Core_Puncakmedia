@@ -39,7 +39,10 @@ Alpine.data('bookingForm', (config) => ({
     markupAmount: String(config.initialMarkupAmount ?? 0),
     dpAmount: String(config.initialDpAmount ?? 0),
     voucherId: String(config.initialVoucherId ?? ''),
+    todayDate: config.todayDate ?? '',
     showAddons: Boolean(config.initialShowAddons ?? false),
+    showPricingAdjustments: Boolean(config.initialShowPricingAdjustments ?? false),
+    showConfirmationModal: false,
 
     init() {
         if (!this.villa.is_resort && !this.selectedUnitId && this.units.length > 0) {
@@ -53,6 +56,14 @@ Alpine.data('bookingForm', (config) => ({
                 this.addonQuantities[addonId] = '1';
             }
         });
+
+        if (
+            this.voucherId
+            || this.sanitizeMoney(this.manualDiscountAmount) > 0
+            || this.sanitizeMoney(this.markupAmount) > 0
+        ) {
+            this.showPricingAdjustments = true;
+        }
     },
 
     sanitizeMoney(value) {
@@ -61,6 +72,18 @@ Alpine.data('bookingForm', (config) => ({
 
     formatMoney(value) {
         return formatRupiah(value);
+    },
+
+    formatDisplayDate(dateString) {
+        if (!dateString) {
+            return '-';
+        }
+
+        return formatLocalizedDate(new Date(`${dateString}T00:00:00`), {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
     },
 
     normalizePhone(event) {
@@ -234,6 +257,12 @@ Alpine.data('bookingForm', (config) => ({
         return this.vouchers.find((voucher) => String(voucher.id) === String(this.voucherId)) ?? null;
     },
 
+    get hasPricingAdjustments() {
+        return Boolean(this.voucherId)
+            || this.manualDiscountValue > 0
+            || this.markupValue > 0;
+    },
+
     get voucherDiscountValue() {
         const voucher = this.selectedVoucher;
 
@@ -254,6 +283,66 @@ Alpine.data('bookingForm', (config) => ({
 
     get remainingBalance() {
         return Math.max(0, this.grandTotal - this.dpValue);
+    },
+
+    get finalPaymentDueDate() {
+        if (!this.checkIn) {
+            return '';
+        }
+
+        const checkInDate = new Date(`${this.checkIn}T00:00:00`);
+        const threshold = new Date(checkInDate);
+        threshold.setDate(threshold.getDate() - 7);
+        const dpDate = this.todayDate ? new Date(`${this.todayDate}T00:00:00`) : new Date();
+        dpDate.setHours(0, 0, 0, 0);
+
+        if (dpDate <= threshold) {
+            const dueDate = new Date(checkInDate);
+            dueDate.setDate(dueDate.getDate() - 3);
+
+            return this.formatDateValue(dueDate);
+        }
+
+        return this.checkIn;
+    },
+
+    get finalPaymentDueLabel() {
+        if (!this.finalPaymentDueDate || !this.checkIn) {
+            return 'Belum ditentukan';
+        }
+
+        if (this.finalPaymentDueDate === this.checkIn) {
+            return `Pelunasan saat check-in (${this.formatDisplayDate(this.finalPaymentDueDate)})`;
+        }
+
+        return `Pelunasan maksimal ${this.formatDisplayDate(this.finalPaymentDueDate)} (H-3)`;
+    },
+
+    formatDateValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    },
+
+    openConfirmationModal() {
+        this.showConfirmationModal = true;
+    },
+
+    closeConfirmationModal() {
+        this.showConfirmationModal = false;
+    },
+
+    submitConfirmedBooking() {
+        const form = this.$root.querySelector('form');
+
+        if (!form) {
+            return;
+        }
+
+        this.showConfirmationModal = false;
+        form.requestSubmit();
     },
 }));
 

@@ -39,7 +39,7 @@
         }
 
         .summary-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             margin-top: 24px;
         }
 
@@ -186,7 +186,9 @@
             <div class="card">
                 <h2>Data Villa</h2>
                 <p class="strong">{{ strtoupper($invoice->booking?->villa?->name ?? '-') }}</p>
-                <p class="muted">{{ strtoupper($invoice->booking?->villaUnit?->unit_name ?? '-') }}</p>
+                @if ($invoice->booking?->villa?->is_resort)
+                    <p class="muted">UNIT: {{ strtoupper($invoice->booking?->villaUnit?->unit_name ?? '-') }}</p>
+                @endif
                 <p class="muted" style="margin-top: 6px;">{{ $invoice->booking?->check_in?->format('d M Y') }} - {{ $invoice->booking?->check_out?->format('d M Y') }}</p>
             </div>
         </div>
@@ -203,6 +205,16 @@
             <div class="card">
                 <h2>Sisa Tagihan</h2>
                 <p class="strong">Rp {{ number_format($invoice->remaining_balance, 0, ',', '.') }}</p>
+            </div>
+            <div class="card">
+                <h2>Pelunasan</h2>
+                <p class="strong">
+                    @if ($invoice->booking?->final_payment_due_date?->isSameDay($invoice->booking?->check_in))
+                        SAAT CHECK-IN
+                    @else
+                        {{ strtoupper($invoice->booking?->final_payment_due_date?->format('d M Y') ?? '-') }}
+                    @endif
+                </p>
             </div>
         </div>
 

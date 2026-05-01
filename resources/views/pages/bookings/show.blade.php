@@ -17,14 +17,47 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Grand Total</div>
+                <div class="ops-kpi-value">Rp {{ number_format($booking->grand_total, 0, ',', '.') }}</div>
+                <div class="ops-kpi-note">Nilai booking keseluruhan.</div>
+            </div>
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Total Pembayaran</div>
+                <div class="ops-kpi-value">Rp {{ number_format($booking->total_paid, 0, ',', '.') }}</div>
+                <div class="ops-kpi-note">Akumulasi pembayaran yang sudah masuk.</div>
+            </div>
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Sisa Tagihan</div>
+                <div class="ops-kpi-value {{ $booking->remaining_balance > 0 ? 'text-error-600 dark:text-error-400' : 'text-success-600 dark:text-success-400' }}">Rp {{ number_format($booking->remaining_balance, 0, ',', '.') }}</div>
+                <div class="ops-kpi-note">Acuan utama untuk follow-up finance.</div>
+            </div>
+            <div class="ops-kpi-card">
+                <div class="ops-kpi-label">Status Pembayaran</div>
+                <div class="ops-kpi-value text-xl">{{ strtoupper($booking->payment_status) }}</div>
+                <div class="ops-kpi-note">Meringkas posisi transaksi internal booking ini.</div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-12 gap-4 md:gap-6">
             <div class="col-span-12 xl:col-span-4">
                 <x-common.component-card title="Ringkasan Booking" desc="Informasi inti booking dan status transaksi saat ini.">
                     <div class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Brand:</span> {{ $booking->brand?->name }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Villa:</span> {{ $booking->villa?->name }}</div>
-                        <div><span class="font-medium text-gray-800 dark:text-white/90">Villa Unit:</span> {{ $booking->villaUnit?->unit_name }}</div>
+                        @if ($booking->villa?->is_resort)
+                            <div><span class="font-medium text-gray-800 dark:text-white/90">Unit:</span> {{ $booking->villaUnit?->unit_name }}</div>
+                        @endif
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Periode:</span> {{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</div>
+                        <div>
+                            <span class="font-medium text-gray-800 dark:text-white/90">Target Pelunasan:</span>
+                            @if ($booking->final_payment_due_date?->isSameDay($booking->check_in))
+                                Pelunasan saat check-in ({{ $booking->final_payment_due_date?->format('d M Y') }})
+                            @else
+                                {{ $booking->final_payment_due_date?->format('d M Y') ?? '-' }} (H-3)
+                            @endif
+                        </div>
                         <div>
                             <span class="font-medium text-gray-800 dark:text-white/90">Status Booking:</span>
                             <x-ui.badge color="{{ $booking->booking_status === 'confirmed' ? 'success' : 'error' }}">{{ ucfirst($booking->booking_status) }}</x-ui.badge>
@@ -45,23 +78,22 @@
             </div>
             <div class="col-span-12 xl:col-span-8">
                 <x-common.component-card title="Ringkasan Keuangan Booking" desc="Finance utama membaca total, pembayaran, dan sisa tagihan langsung dari booking ini.">
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Subtotal</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($booking->total_before_discount, 0, ',', '.') }}</p></div>
-                        <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Total Pembayaran</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($booking->total_paid, 0, ',', '.') }}</p></div>
-                        <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Sisa Tagihan</p><p class="mt-2 text-xl font-semibold {{ $booking->remaining_balance > 0 ? 'text-error-600 dark:text-error-400' : 'text-success-600 dark:text-success-400' }}">{{ number_format($booking->remaining_balance, 0, ',', '.') }}</p></div>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div class="ops-panel-soft"><p class="text-sm text-gray-500 dark:text-gray-400">Subtotal Sebelum Diskon</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">Rp {{ number_format($booking->total_before_discount, 0, ',', '.') }}</p></div>
+                        <div class="ops-panel-soft"><p class="text-sm text-gray-500 dark:text-gray-400">Periode Menginap</p><p class="mt-2 text-base font-semibold text-gray-800 dark:text-white/90">{{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</p></div>
+                        <div class="ops-panel-soft md:col-span-2"><p class="text-sm text-gray-500 dark:text-gray-400">Jadwal Pelunasan</p><p class="mt-2 text-base font-semibold text-gray-800 dark:text-white/90">@if ($booking->final_payment_due_date?->isSameDay($booking->check_in)) Pelunasan saat check-in ({{ $booking->final_payment_due_date?->format('d M Y') }}) @else {{ $booking->final_payment_due_date?->format('d M Y') ?? '-' }} (H-3 sebelum check-in) @endif</p></div>
                     </div>
-                    <div class="rounded-xl border border-gray-100 px-4 py-4 dark:border-gray-800"><p class="text-sm text-gray-500 dark:text-gray-400">Grand Total</p><p class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($booking->grand_total, 0, ',', '.') }}</p></div>
                 </x-common.component-card>
             </div>
         </div>
 
         <x-common.component-card title="Komponen Biaya Booking" desc="Semua biaya operasional booking terkumpul di sini dan menjadi sumber utama perhitungan keuangan internal.">
             <div class="overflow-x-auto custom-scrollbar">
-                <table class="min-w-full">
-                    <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jenis</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Qty</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</th></tr></thead>
+                <table class="ops-compact-table">
+                    <thead><tr><th>Jenis</th><th>Nama</th><th>Tanggal</th><th>Qty</th><th>Total</th></tr></thead>
                     <tbody>
                         @foreach ($booking->items as $item)
-                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->item_type }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->item_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $item->notes }}</div></td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->reference_date?->format('d M Y') ?: '-' }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $item->quantity }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ number_format($item->total_price, 0, ',', '.') }}</td></tr>
+                            <tr><td>{{ $item->item_type }}</td><td>{{ $item->item_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $item->notes }}</div></td><td>{{ $item->reference_date?->format('d M Y') ?: '-' }}</td><td>{{ $item->quantity }}</td><td>Rp {{ number_format($item->total_price, 0, ',', '.') }}</td></tr>
                         @endforeach
                     </tbody>
                 </table>
@@ -126,13 +158,13 @@
 
         <x-common.component-card title="Riwayat Pembayaran Booking" desc="Semua pembayaran tercatat ke booking ini. Finance utama memantau cashflow dari bagian ini, sedangkan invoice hanya referensi dokumen tamu.">
             <div class="overflow-x-auto custom-scrollbar">
-                <table class="min-w-full">
-                    <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Metode</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Penerima</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jumlah</th></tr></thead>
+                <table class="ops-compact-table">
+                    <thead><tr><th>Tanggal</th><th>Metode</th><th>Penerima</th><th>Jumlah</th></tr></thead>
                     <tbody>
                         @forelse ($booking->payments as $payment)
-                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $payment->paid_at?->format('d M Y H:i') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ ucfirst($payment->payment_method) }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ number_format($payment->amount, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $payment->note }}</div><div class="mt-2"><a href="{{ route('documents.payments.receipt', $payment) }}" target="_blank" class="text-xs font-medium text-brand-600 dark:text-brand-300">Lihat Bukti Pembayaran</a></div></td></tr>
+                            <tr><td>{{ $payment->paid_at?->format('d M Y H:i') }}</td><td>{{ ucfirst($payment->payment_method) }}</td><td>{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</td><td>Rp {{ number_format($payment->amount, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $payment->note }}</div><div class="mt-2"><a href="{{ route('documents.payments.receipt', $payment) }}" target="_blank" class="text-xs font-medium text-brand-600 dark:text-brand-300">Lihat Bukti Pembayaran</a></div></td></tr>
                         @empty
-                            <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada pembayaran untuk booking ini.</td></tr>
+                            <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada pembayaran untuk booking ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -147,7 +179,7 @@
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Invoice</label>
-                            <select name="invoice_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                            <select name="invoice_id" class="ops-input">
                                 @foreach ($booking->invoices as $invoice)
                                     <option value="{{ $invoice->id }}">{{ $invoice->label }} - {{ number_format($invoice->remaining_balance, 0, ',', '.') }}</option>
                                 @endforeach
@@ -155,12 +187,12 @@
                         </div>
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nominal (Rupiah)</label>
-                            <input type="number" step="1" min="1" name="amount" value="{{ old('amount', 0) }}" data-money class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                            <input type="number" step="1" min="1" name="amount" value="{{ old('amount', 0) }}" data-money class="ops-input" />
                             @error('amount')<p class="mt-2 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Metode</label>
-                            <select name="payment_method" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                            <select name="payment_method" class="ops-input">
                                 <option value="cash" @selected(old('payment_method') === 'cash')>Cash</option>
                                 <option value="transfer" @selected(old('payment_method') === 'transfer')>Transfer</option>
                             </select>
@@ -168,7 +200,7 @@
                         </div>
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Penerima</label>
-                            <select name="received_by" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">
+                            <select name="received_by" class="ops-input">
                                 <option value="finance" @selected(old('received_by') === 'finance')>Finance</option>
                                 <option value="office" @selected(old('received_by') === 'office')>Office</option>
                                 <option value="field_staff" @selected(old('received_by') === 'field_staff')>Field Staff</option>
@@ -177,12 +209,12 @@
                         </div>
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Bayar</label>
-                            <input onclick="this.showPicker()" type="date" name="paid_at" value="{{ old('paid_at', now()->format('Y-m-d')) }}" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                            <input onclick="this.showPicker()" type="date" name="paid_at" value="{{ old('paid_at', now()->format('Y-m-d')) }}" class="ops-input" />
                         </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catatan</label>
-                        <textarea name="note" rows="2" class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90">{{ old('note') }}</textarea>
+                        <textarea name="note" rows="2" class="ops-textarea">{{ old('note') }}</textarea>
                     </div>
                     <div class="flex justify-end">
                         <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Catat Pembayaran</button>

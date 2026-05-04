@@ -23,6 +23,159 @@ const formatLocalizedDate = (date, options = {}) => date.toLocaleDateString(APP_
     ...options,
 });
 
+Alpine.data('villaForm', (config) => ({
+    isResort: Boolean(config.isResort),
+    showUpdateConfirmation: false,
+    isEditMode: Boolean(config.isEditMode),
+    name: config.name ?? '',
+    slug: config.slug ?? '',
+    location: config.location ?? '',
+    status: config.status ?? 'draft',
+    description: config.description ?? '',
+    rules: config.rules ?? '',
+    pros: config.pros ?? '',
+    cons: config.cons ?? '',
+    youtubeUrl: config.youtubeUrl ?? '',
+    brandIds: (config.brandIds ?? []).map(Number),
+    initialData: config.initialData ?? {},
+    brandOptions: config.brandOptions ?? [],
+    facilityOptions: config.facilityOptions ?? [],
+    facilities: config.facilities?.length ? [...config.facilities] : [''],
+    additionalFacilities: config.additionalFacilities?.length ? [...config.additionalFacilities] : [''],
+    customFacility: '',
+    dragIndex: null,
+
+    addFacility(type) {
+        if (type === 'primary') {
+            this.facilities.push('');
+            return;
+        }
+
+        this.additionalFacilities.push('');
+    },
+
+    removeFacility(type, index) {
+        const list = type === 'primary' ? this.facilities : this.additionalFacilities;
+
+        if (list.length === 1) {
+            list[0] = '';
+            return;
+        }
+
+        list.splice(index, 1);
+    },
+
+    hasFacility(name) {
+        return this.facilities.includes(name);
+    },
+
+    toggleFacility(name) {
+        if (this.hasFacility(name)) {
+            this.facilities = this.facilities.filter((item) => item !== name);
+
+            if (this.facilities.length === 0) {
+                this.facilities = [''];
+            }
+            return;
+        }
+
+        if (this.facilities.length === 1 && this.facilities[0] === '') {
+            this.facilities = [name];
+            return;
+        }
+
+        this.facilities.push(name);
+    },
+
+    addCustomFacility() {
+        const value = String(this.customFacility ?? '').trim();
+
+        if (!value) {
+            return;
+        }
+
+        if (this.facilities.length === 1 && this.facilities[0] === '') {
+            this.facilities = [value];
+        } else if (!this.facilities.includes(value)) {
+            this.facilities.push(value);
+        }
+
+        this.customFacility = '';
+    },
+
+    dragStartList(type, index) {
+        this.dragIndex = { type, index };
+    },
+
+    dropList(type, index) {
+        if (!this.dragIndex || this.dragIndex.type !== type || this.dragIndex.index === index) {
+            this.dragIndex = null;
+            return;
+        }
+
+        const list = type === 'primary' ? [...this.facilities] : [...this.additionalFacilities];
+        const [moved] = list.splice(this.dragIndex.index, 1);
+        list.splice(index, 0, moved);
+
+        if (type === 'primary') {
+            this.facilities = list;
+        } else {
+            this.additionalFacilities = list;
+        }
+
+        this.dragIndex = null;
+    },
+
+    openUpdateConfirmation() {
+        this.showUpdateConfirmation = true;
+    },
+
+    closeUpdateConfirmation() {
+        this.showUpdateConfirmation = false;
+    },
+
+    submitConfirmedUpdate() {
+        const form = this.$root.querySelector('form');
+
+        if (!form) {
+            return;
+        }
+
+        this.showUpdateConfirmation = false;
+        form.requestSubmit();
+    },
+
+    cleanList(items) {
+        return (items ?? []).filter((item) => String(item).trim() !== '');
+    },
+
+    formatBrands(ids) {
+        const normalizedIds = (ids ?? []).map(Number);
+        const selected = this.brandOptions
+            .filter((option) => normalizedIds.includes(Number(option.id)))
+            .map((option) => option.name);
+
+        return selected.length ? selected.join(', ') : '-';
+    },
+
+    formatStatus(value) {
+        return ({
+            draft: 'Draft',
+            active: 'Aktif',
+            inactive: 'Nonaktif',
+        })[value] ?? '-';
+    },
+
+    formatResort(value) {
+        return value ? 'Resort' : 'Villa';
+    },
+
+    formatList(items) {
+        const cleaned = this.cleanList(items);
+        return cleaned.length ? cleaned.join(', ') : '-';
+    },
+}));
+
 Alpine.data('bookingForm', (config) => ({
     villa: config.villa,
     units: config.units ?? [],

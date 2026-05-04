@@ -92,17 +92,103 @@
     </script>
 </head>
 
-<body x-data="{ 'loaded': true}" x-init="$store.sidebar.isExpanded = window.innerWidth >= 1280;
-const checkMobile = () => {
-    if (window.innerWidth < 1280) {
-        $store.sidebar.setMobileOpen(false);
-        $store.sidebar.isExpanded = false;
+<body
+    x-data="{
+        loaded: true,
+        loaderTimer: null,
+        loaderInitialized: false,
+        hideLoader() {
+            if (this.loaderTimer) {
+                clearTimeout(this.loaderTimer);
+                this.loaderTimer = null;
+            }
+            this.loaded = false;
+        },
+        showLoader() {
+            if (this.loaderTimer) {
+                clearTimeout(this.loaderTimer);
+                this.loaderTimer = null;
+            }
+
+            this.loaded = true;
+        },
+        scheduleLoader() {
+            if (this.loaderTimer) {
+                clearTimeout(this.loaderTimer);
+            }
+
+            this.loaderTimer = window.setTimeout(() => {
+                this.showLoader();
+            }, 120);
+        },
+        shouldHandleNavigation(link) {
+            if (!link) {
+                return false;
+            }
+
+            if (link.target === '_blank' || link.hasAttribute('download') || link.dataset.skipLoading !== undefined) {
+                return false;
+            }
+
+            const href = link.getAttribute('href');
+
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+                return false;
+            }
+
+            try {
+                const url = new URL(link.href, window.location.origin);
+
+                return url.origin === window.location.origin;
+            } catch (error) {
+                return false;
+            }
+        },
+        initializeLoader() {
+            if (this.loaderInitialized) {
+                return;
+            }
+
+            this.loaderInitialized = true;
+            requestAnimationFrame(() => {
+                this.hideLoader();
+            });
+        }
+    }"
+    x-init="$store.sidebar.isExpanded = window.innerWidth >= 1280;
+    const checkMobile = () => {
+        if (window.innerWidth < 1280) {
+            $store.sidebar.setMobileOpen(false);
+            $store.sidebar.isExpanded = false;
+        } else {
+            $store.sidebar.isMobileOpen = false;
+            $store.sidebar.isExpanded = true;
+        }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    window.addEventListener('pageshow', () => hideLoader());
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        initializeLoader();
     } else {
-        $store.sidebar.isMobileOpen = false;
-        $store.sidebar.isExpanded = true;
+        document.addEventListener('DOMContentLoaded', () => initializeLoader(), { once: true });
     }
-};
-window.addEventListener('resize', checkMobile);">
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+
+        if (shouldHandleNavigation(link)) {
+            scheduleLoader();
+        }
+    }, true);
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement) || form.dataset.skipLoading !== undefined) {
+            return;
+        }
+
+        scheduleLoader();
+    }, true);">
 
     {{-- preloader --}}
     <x-common.preloader/>

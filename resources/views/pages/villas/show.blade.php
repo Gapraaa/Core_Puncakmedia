@@ -30,6 +30,30 @@
                 <x-common.component-card title="Catatan Villa" desc="Deskripsi, kelebihan, aturan, dan tautan pendukung.">
                     <div class="space-y-4 text-sm text-gray-600 dark:text-gray-300">
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Deskripsi:</span> {{ $villa->description ?: '-' }}</div>
+                        <div>
+                            <span class="font-medium text-gray-800 dark:text-white/90">Fasilitas Villa:</span>
+                            @if ($villa->primaryFacilities->isNotEmpty())
+                                <ul class="mt-2 list-disc space-y-1 pl-5">
+                                    @foreach ($villa->primaryFacilities as $facility)
+                                        <li>{{ $facility->name }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <span> -</span>
+                            @endif
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-800 dark:text-white/90">Fasilitas Tambahan:</span>
+                            @if ($villa->additionalFacilities->isNotEmpty())
+                                <ul class="mt-2 list-disc space-y-1 pl-5">
+                                    @foreach ($villa->additionalFacilities as $facility)
+                                        <li>{{ $facility->name }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <span> -</span>
+                            @endif
+                        </div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Rules:</span> {{ $villa->rules ?: '-' }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Pros:</span> {{ $villa->pros ?: '-' }}</div>
                         <div><span class="font-medium text-gray-800 dark:text-white/90">Cons:</span> {{ $villa->cons ?: '-' }}</div>

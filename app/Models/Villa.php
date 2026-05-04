@@ -45,4 +45,19 @@ class Villa extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function facilities(): HasMany
+    {
+        return $this->hasMany(VillaFacility::class)->orderBy('type')->orderBy('sort_order');
+    }
+
+    public function primaryFacilities(): HasMany
+    {
+        return $this->hasMany(VillaFacility::class)->where('type', 'primary')->orderBy('sort_order');
+    }
+
+    public function additionalFacilities(): HasMany
+    {
+        return $this->hasMany(VillaFacility::class)->where('type', 'additional')->orderBy('sort_order');
+    }
 }

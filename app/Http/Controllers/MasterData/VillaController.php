@@ -56,7 +56,13 @@ class VillaController extends Controller
     {
         return view('pages.villas.show', [
             'title' => 'Detail Villa',
-            'villa' => $villa->load(['units' => fn ($query) => $query->latest()->limit(10), 'brands', 'bookings' => fn ($query) => $query->latest()->limit(5)]),
+            'villa' => $villa->load([
+                'units' => fn ($query) => $query->latest()->limit(10),
+                'brands',
+                'bookings' => fn ($query) => $query->latest()->limit(5),
+                'primaryFacilities',
+                'additionalFacilities',
+            ]),
         ]);
     }
 
@@ -67,6 +73,9 @@ class VillaController extends Controller
             if ($request->has('brand_ids')) {
                 $villa->brands()->sync($request->input('brand_ids'));
             }
+
+            $this->syncFacilities($villa, 'primary', $request->input('facilities', []));
+            $this->syncFacilities($villa, 'additional', $request->input('additional_facilities', []));
 
             // Villa biasa: auto-create 1 unit
             if (! $request->boolean('is_resort')) {
@@ -91,6 +100,8 @@ class VillaController extends Controller
             after: $villa->fresh()->only(['name', 'slug', 'location', 'is_resort', 'status']),
             properties: [
                 'brand_ids' => implode(', ', $request->input('brand_ids', [])),
+                'facilities' => implode(', ', $this->cleanFacilityItems($request->input('facilities', []))),
+                'additional_facilities' => implode(', ', $this->cleanFacilityItems($request->input('additional_facilities', []))),
             ],
         );
 
@@ -104,7 +115,7 @@ class VillaController extends Controller
 
         return view('pages.villas.edit', [
             'title' => 'Edit Villa',
-            'villa' => $villa,
+            'villa' => $villa->load(['primaryFacilities', 'additionalFacilities']),
             'villaUnit' => $villaUnit,
             'brands' => Brand::query()->orderBy('name')->get(),
             'selectedBrands' => $villa->brands()->pluck('brands.id')->toArray(),
@@ -118,6 +129,8 @@ class VillaController extends Controller
         DB::transaction(function () use ($request, $villa): void {
             $villa->update($this->validatedData($request));
             $villa->brands()->sync($request->input('brand_ids', []));
+            $this->syncFacilities($villa, 'primary', $request->input('facilities', []));
+            $this->syncFacilities($villa, 'additional', $request->input('additional_facilities', []));
 
             // Villa biasa: sync unit pertama
             if (! $request->boolean('is_resort')) {
@@ -150,6 +163,8 @@ class VillaController extends Controller
             after: $villa->fresh()->only(['name', 'slug', 'location', 'is_resort', 'status']),
             properties: [
                 'brand_ids' => implode(', ', $request->input('brand_ids', [])),
+                'facilities' => implode(', ', $this->cleanFacilityItems($request->input('facilities', []))),
+                'additional_facilities' => implode(', ', $this->cleanFacilityItems($request->input('additional_facilities', []))),
             ],
         );
 
@@ -179,8 +194,36 @@ class VillaController extends Controller
         $data['is_resort'] = $request->boolean('is_resort');
 
         // Remove unit fields and relation fields from villa data
-        unset($data['unit_capacity'], $data['price_weekday'], $data['price_semi_weekend'], $data['price_weekend'], $data['brand_ids']);
+        unset($data['unit_capacity'], $data['price_weekday'], $data['price_semi_weekend'], $data['price_weekend'], $data['brand_ids'], $data['facilities'], $data['additional_facilities']);
 
         return $data;
+    }
+
+    protected function syncFacilities(Villa $villa, string $type, array $items): void
+    {
+        $villa->facilities()->where('type', $type)->delete();
+
+        $payload = collect($this->cleanFacilityItems($items))
+            ->values()
+            ->map(fn (string $name, int $index): array => [
+                'type' => $type,
+                'name' => $name,
+                'sort_order' => $index,
+            ])
+            ->all();
+
+        if (! empty($payload)) {
+            $villa->facilities()->createMany($payload);
+        }
+    }
+
+    protected function cleanFacilityItems(array $items): array
+    {
+        return collect($items)
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }

@@ -94,7 +94,70 @@
 </head>
 
 <body
-    x-data="{ 'loaded': true}"
+    x-data="{
+        loaded: true,
+        layoutReady: false,
+        loaderTimer: null,
+        loaderInitialized: false,
+        hideLoader() {
+            if (this.loaderTimer) {
+                clearTimeout(this.loaderTimer);
+                this.loaderTimer = null;
+            }
+            this.loaded = false;
+        },
+        showLoader() {
+            if (this.loaderTimer) {
+                clearTimeout(this.loaderTimer);
+                this.loaderTimer = null;
+            }
+            this.loaded = true;
+            this.layoutReady = false;
+        },
+        scheduleLoader() {
+            if (this.loaderTimer) {
+                clearTimeout(this.loaderTimer);
+            }
+
+            this.loaderTimer = window.setTimeout(() => {
+                this.showLoader();
+            }, 120);
+        },
+        shouldHandleNavigation(link) {
+            if (!link) {
+                return false;
+            }
+
+            if (link.target === '_blank' || link.hasAttribute('download') || link.dataset.skipLoading !== undefined) {
+                return false;
+            }
+
+            const href = link.getAttribute('href');
+
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+                return false;
+            }
+
+            try {
+                const url = new URL(link.href, window.location.origin);
+
+                return url.origin === window.location.origin;
+            } catch (error) {
+                return false;
+            }
+        },
+        finishInitialLayout() {
+            if (this.loaderInitialized) {
+                return;
+            }
+
+            this.loaderInitialized = true;
+            requestAnimationFrame(() => {
+                this.layoutReady = true;
+                this.hideLoader();
+            });
+        }
+    }"
     x-init="$store.sidebar.isExpanded = window.innerWidth >= 1280;
     const checkMobile = () => {
         if (window.innerWidth < 1280) {
@@ -105,18 +168,49 @@
             $store.sidebar.isExpanded = true;
         }
     };
-    window.addEventListener('resize', checkMobile);">
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    window.addEventListener('pageshow', () => {
+        layoutReady = true;
+        hideLoader();
+    });
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        finishInitialLayout();
+    } else {
+        document.addEventListener('DOMContentLoaded', () => finishInitialLayout(), { once: true });
+    }
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+
+        if (shouldHandleNavigation(link)) {
+            scheduleLoader();
+        }
+    }, true);
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement) || form.dataset.skipLoading !== undefined) {
+            return;
+        }
+
+        scheduleLoader();
+    }, true);">
 
     {{-- preloader --}}
-    <x-common.preloader/>
+    <x-common.preloader />
     {{-- preloader end --}}
 
-    <div class="min-h-screen xl:flex">
+    <div
+        class="min-h-screen xl:flex transition-opacity duration-150"
+        :class="layoutReady ? 'opacity-100' : 'opacity-0'"
+        :style="layoutReady ? '' : 'visibility:hidden'"
+    >
         @include('layouts.backdrop')
         @include('layouts.sidebar')
 
-        <div class="flex-1 transition-all duration-300 ease-in-out"
+        <div class="flex-1"
             :class="{
+                'transition-[margin] duration-300 ease-in-out': layoutReady,
                 'xl:ml-[290px]': $store.sidebar.isExpanded || $store.sidebar.isHovered,
                 'xl:ml-[90px]': !$store.sidebar.isExpanded && !$store.sidebar.isHovered,
                 'ml-0': $store.sidebar.isMobileOpen

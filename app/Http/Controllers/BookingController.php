@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -452,7 +453,10 @@ class BookingController extends Controller
 
     protected function getVillaSelectionPaginator(Request $request)
     {
-        return Villa::query()
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 12;
+
+        $villas = Villa::query()
             ->with(['brands', 'units'])
             ->withCount('bookings')
             ->when($request->filled('q'), function (Builder $query) use ($request): void {
@@ -464,7 +468,53 @@ class BookingController extends Controller
                 });
             })
             ->latest()
-            ->paginate(12)
-            ->withQueryString();
+            ->get();
+
+        $rows = $villas->flatMap(function (Villa $villa) {
+            $units = $villa->units ?? collect();
+
+            if (! $villa->is_resort) {
+                $unit = $units->first();
+
+                return [[
+                    'villa' => $villa,
+                    'unit' => $unit,
+                    'display_name' => $villa->name,
+                    'type_label' => 'Villa',
+                    'weekday_price' => (int) ($unit?->price_weekday ?? 0),
+                    'semi_weekend_price' => (int) ($unit?->price_semi_weekend ?? 0),
+                    'weekend_price' => (int) ($unit?->price_weekend ?? 0),
+                    'capacity' => (int) ($unit?->capacity ?? 0),
+                    'bookings_count' => (int) ($villa->bookings_count ?? 0),
+                ]];
+            }
+
+                return $units->map(function (VillaUnit $unit) use ($villa): array {
+                    return [
+                        'villa' => $villa,
+                        'unit' => $unit,
+                        'display_name' => trim($villa->name . ' - ' . $unit->unit_name),
+                        'type_label' => 'Resort',
+                    'weekday_price' => (int) $unit->price_weekday,
+                    'semi_weekend_price' => (int) $unit->price_semi_weekend,
+                    'weekend_price' => (int) $unit->price_weekend,
+                    'capacity' => (int) $unit->capacity,
+                    'bookings_count' => (int) ($villa->bookings_count ?? 0),
+                ];
+            })->all();
+        })->values();
+
+        $paginatedRows = $rows->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $paginatedRows,
+            $rows->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
     }
 }

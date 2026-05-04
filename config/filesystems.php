@@ -2,6 +2,8 @@
 
 return [
 
+    'villa_media_disk' => env('VILLA_MEDIA_DISK', 'public'),
+
     /*
     |--------------------------------------------------------------------------
     | Default Filesystem Disk

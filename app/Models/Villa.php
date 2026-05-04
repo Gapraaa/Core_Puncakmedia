@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Villa extends Model
 {
@@ -59,5 +60,15 @@ class Villa extends Model
     public function additionalFacilities(): HasMany
     {
         return $this->hasMany(VillaFacility::class)->where('type', 'additional')->orderBy('sort_order');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(VillaImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function coverImage(): HasOne
+    {
+        return $this->hasOne(VillaImage::class)->where('is_cover', true);
     }
 }

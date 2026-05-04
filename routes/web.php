@@ -13,6 +13,7 @@ use App\Http\Controllers\MasterData\AddonOptionController;
 use App\Http\Controllers\MasterData\BrandController;
 use App\Http\Controllers\MasterData\SeasonalPriceController;
 use App\Http\Controllers\MasterData\VillaController;
+use App\Http\Controllers\MasterData\VillaImageController;
 use App\Http\Controllers\MasterData\VillaUnitController;
 use App\Http\Controllers\MasterData\VoucherController;
 use App\Http\Controllers\PaymentController;
@@ -43,6 +44,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
                 ->middleware('role:master,superadmin,head-office');
 
             Route::resource('villas', VillaController::class)->except('show');
+            Route::post('villas/{villa}/images', [VillaImageController::class, 'store'])->name('villas.images.store');
+            Route::patch('villas/{villa}/images/order', [VillaImageController::class, 'reorder'])->name('villas.images.reorder');
+            Route::patch('villas/{villa}/images/{villaImage}/cover', [VillaImageController::class, 'setCover'])->name('villas.images.cover');
+            Route::delete('villas/{villa}/images/{villaImage}', [VillaImageController::class, 'destroy'])->name('villas.images.destroy');
 
             Route::get('villa-units', [VillaUnitController::class, 'index'])->name('villa-units.index');
             Route::get('villa-units/villas/{villa}', [VillaUnitController::class, 'listByVilla'])->name('villa-units.list');

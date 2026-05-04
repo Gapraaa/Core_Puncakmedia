@@ -20,7 +20,7 @@ class VillaController extends Controller
     {
         $villas = Villa::query()
             ->with(['brands'])
-            ->withCount(['units', 'bookings'])
+            ->withCount(['units', 'bookings', 'images'])
             ->when($request->filled('q'), function (Builder $query) use ($request): void {
                 $keyword = trim((string) $request->string('q'));
                 $query->where(function (Builder $innerQuery) use ($keyword): void {
@@ -62,6 +62,8 @@ class VillaController extends Controller
                 'bookings' => fn ($query) => $query->latest()->limit(5),
                 'primaryFacilities',
                 'additionalFacilities',
+                'images',
+                'coverImage',
             ]),
         ]);
     }
@@ -115,7 +117,7 @@ class VillaController extends Controller
 
         return view('pages.villas.edit', [
             'title' => 'Edit Villa',
-            'villa' => $villa->load(['primaryFacilities', 'additionalFacilities']),
+            'villa' => $villa->load(['primaryFacilities', 'additionalFacilities', 'images']),
             'villaUnit' => $villaUnit,
             'brands' => Brand::query()->orderBy('name')->get(),
             'selectedBrands' => $villa->brands()->pluck('brands.id')->toArray(),

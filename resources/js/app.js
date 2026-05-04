@@ -176,6 +176,32 @@ Alpine.data('villaForm', (config) => ({
     },
 }));
 
+Alpine.data('villaGalleryManager', (config) => ({
+    images: config.images ?? [],
+    dragIndex: null,
+
+    dragStart(index) {
+        this.dragIndex = index;
+    },
+
+    drop(index) {
+        if (this.dragIndex === null || this.dragIndex === index) {
+            this.dragIndex = null;
+            return;
+        }
+
+        const reordered = [...this.images];
+        const [moved] = reordered.splice(this.dragIndex, 1);
+        reordered.splice(index, 0, moved);
+        this.images = reordered;
+        this.dragIndex = null;
+    },
+
+    hasImages() {
+        return this.images.length > 0;
+    },
+}));
+
 Alpine.data('bookingForm', (config) => ({
     villa: config.villa,
     units: config.units ?? [],

@@ -11,4 +11,10 @@
         'httpMethod' => 'PUT',
         'villa' => $villa,
     ])
+
+    <div class="mt-6">
+        @include('pages.villas.partials.gallery-manager', [
+            'villa' => $villa,
+        ])
+    </div>
 @endsection

@@ -1,7 +1,7 @@
 <div x-data="bookingForm(@js($bookingPreviewConfig))" class="space-y-6">
     <div>
         <x-common.component-card title="Form Booking" desc="Isi data booking dalam satu halaman, cek ringkasan harga singkat, lalu pastikan lagi di modal konfirmasi sebelum booking disimpan.">
-            <form method="POST" action="{{ route('bookings.store', $villa) }}" class="space-y-6">
+            <form method="POST" action="{{ route('bookings.store', $villa) }}" class="space-y-6" data-toast-loading="Booking baru sedang disimpan dan invoice sedang disiapkan." data-toast-loading-title="Menyimpan Booking">
                 @csrf
 
                 {{-- Villa & Brand --}}

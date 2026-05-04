@@ -59,6 +59,9 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "queue:check": [
+            "@php artisan ops:queue-check"
         ]
     },
     "extra": {

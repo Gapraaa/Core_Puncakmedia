@@ -1,7 +1,9 @@
 <div class="grid grid-cols-12 gap-4 md:gap-6">
     <div class="col-span-12 xl:col-span-8">
         <x-common.component-card :title="$pageTitle" :desc="$pageDescription">
-            <form method="POST" action="{{ $formAction }}" class="space-y-6">
+            <form method="POST" action="{{ $formAction }}" class="space-y-6"
+                data-toast-loading="Data unit villa sedang disimpan."
+                data-toast-loading-title="{{ isset($httpMethod) ? 'Memperbarui Unit Villa' : 'Menyimpan Unit Villa' }}">
                 @csrf
                 @isset($httpMethod) @method($httpMethod) @endisset
                 <div>
@@ -61,4 +63,3 @@
         </x-common.component-card>
     </div>
 </div>
-

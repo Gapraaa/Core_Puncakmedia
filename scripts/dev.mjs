@@ -12,6 +12,7 @@ import { resolve } from "path";
 const ROOT = resolve(import.meta.dirname, "..");
 const IS_WINDOWS = process.platform === "win32";
 const VITE_BIN = resolve(ROOT, "node_modules", "vite", "bin", "vite.js");
+const SHOULD_RUN_TESTS = String(process.env.DEV_RUN_TESTS || "").toLowerCase() === "true";
 
 const colors = {
   reset: "\x1b[0m",
@@ -232,6 +233,24 @@ function tryRun(command, args = []) {
   }
 }
 
+function readEnvValue(key) {
+  if (!existsSync(resolve(ROOT, ".env"))) {
+    return null;
+  }
+
+  const envContent = readFileSync(resolve(ROOT, ".env"), "utf-8");
+  const target = envContent
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith(`${key}=`));
+
+  if (!target) {
+    return null;
+  }
+
+  return target.slice(key.length + 1).replace(/^['"]|['"]$/g, "");
+}
+
 function createProcess(command, args, options = {}) {
   const resolved = locateExecutable(command);
 
@@ -277,6 +296,13 @@ function classifyViteLine(line) {
   if (/error/i.test(line)) return "error";
   if (/warning/i.test(line)) return "warn";
   if (/Local:|Network:|ready in/i.test(line)) return "success";
+  return "default";
+}
+
+function classifyQueueLine(line) {
+  if (/error|exception|failed/i.test(line)) return "error";
+  if (/warning|warn/i.test(line)) return "warn";
+  if (/processing|running|worked|done/i.test(line)) return "success";
   return "default";
 }
 
@@ -406,6 +432,9 @@ if (existsSync(resolve(ROOT, "node_modules"))) {
 
 header(icons.database, "Phase 3: Checking Database", "bgMagenta");
 
+const queueConnection = readEnvValue("QUEUE_CONNECTION") || "database";
+info(`Queue connection: ${queueConnection}`);
+
 const databaseResult = tryRun("php", ["artisan", "migrate:status"]);
 if (databaseResult.ok) {
   if (databaseResult.output.includes("Pending")) {
@@ -417,6 +446,10 @@ if (databaseResult.ok) {
 } else {
   warn("Database belum bisa dicek (pastikan MySQL aktif)");
   warnings.push("Koneksi database gagal dicek");
+}
+
+if (queueConnection === "database") {
+  ok("Queue database aktif dan akan dijalankan lewat dev launcher");
 }
 
 header(icons.tests, "Phase 4: Quick Smoke Test", "bgBlue");
@@ -445,26 +478,31 @@ if (viewResult.ok) {
 
 header(icons.tests, "Phase 5: Running Tests", "bgCyan");
 
-const testResult = tryRun("php", ["artisan", "test"]);
-if (testResult.ok) {
-  const summary = testResult.output
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(-3);
+if (SHOULD_RUN_TESTS) {
+  const testResult = tryRun("php", ["artisan", "test"]);
+  if (testResult.ok) {
+    const summary = testResult.output
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(-3);
 
-  summary.forEach((line) => info(line));
-  ok("Semua test PASSED");
+    summary.forEach((line) => info(line));
+    ok("Semua test PASSED");
+  } else {
+    const summary = (testResult.output || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(-5);
+
+    summary.forEach((line) => info(line));
+    warn("Beberapa test gagal (server tetap bisa jalan)");
+    warnings.push("Ada test yang gagal");
+  }
 } else {
-  const summary = (testResult.output || "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(-5);
-
-  summary.forEach((line) => info(line));
-  warn("Beberapa test gagal (server tetap bisa jalan)");
-  warnings.push("Ada test yang gagal");
+  info("Test otomatis dilewati untuk mempercepat startup dev");
+  info("Set DEV_RUN_TESTS=true jika ingin selalu menjalankan test saat npm run dev");
 }
 
 console.log("");
@@ -492,12 +530,15 @@ console.log("");
 header(icons.launch, "Launching Dev Servers", "bgMagenta");
 console.log(`  ${c("green", `${icons.laravel} Laravel`)}`.padEnd(27, " ") + `${c("white", "http://127.0.0.1:8000")}`);
 console.log(`  ${c("magenta", `${icons.vite} Vite`)}`.padEnd(27, " ") + `${c("white", "http://127.0.0.1:5173")}`);
+console.log(`  ${c("cyan", `${icons.info} Queue`)}`.padEnd(27, " ") + `${c("white", "php artisan queue:work --tries=1")}`);
 console.log(`  ${c("green", "●")} ${c("bold", "LARAVEL")}  ${c("gray", "::")} ${c("yellow", "STARTING")}`);
 console.log(`  ${c("magenta", "●")} ${c("bold", "VITE")}     ${c("gray", "::")} ${c("yellow", "STARTING")}`);
+console.log(`  ${c("cyan", "●")} ${c("bold", "QUEUE")}    ${c("gray", "::")} ${c("yellow", "STARTING")}`);
 console.log(`  ${c("orange", "✦")} ${dim("Tekan Ctrl+C untuk stop semua")}`);
 console.log("");
 
 const laravel = createProcess("php", ["artisan", "serve"]);
+const queue = createProcess("php", ["artisan", "queue:work", "--tries=1"]);
 const vite = existsSync(VITE_BIN)
   ? createProcess("node", [VITE_BIN, "--clearScreen", "false"])
   : createProcess("npm", ["run", "dev:vite", "--", "--clearScreen", "false"]);
@@ -516,11 +557,22 @@ wireLogs(vite, {
   classify: classifyViteLine,
 });
 
+wireLogs(queue, {
+  label: "QUEUE",
+  icon: icons.info,
+  color: "cyan",
+  classify: classifyQueueLine,
+});
+
 function cleanup(signal = "manual") {
   console.log(`\n  ${c("yellow", `${icons.warn} Stopping dev servers (${signal})...`)}`);
 
   if (!laravel.killed) {
     laravel.kill();
+  }
+
+  if (!queue.killed) {
+    queue.kill();
   }
 
   if (!vite.killed) {
@@ -538,6 +590,10 @@ laravel.on("close", (code) => {
     console.log(`  ${c("red", `${icons.fail} Laravel exited with code ${code}`)}`);
   }
 
+  if (!queue.killed) {
+    queue.kill();
+  }
+
   if (!vite.killed) {
     vite.kill();
   }
@@ -552,6 +608,26 @@ vite.on("close", (code) => {
 
   if (!laravel.killed) {
     laravel.kill();
+  }
+
+  if (!queue.killed) {
+    queue.kill();
+  }
+
+  process.exit(code || 0);
+});
+
+queue.on("close", (code) => {
+  if (code !== null && code !== 0) {
+    console.log(`  ${c("red", `${icons.fail} Queue exited with code ${code}`)}`);
+  }
+
+  if (!laravel.killed) {
+    laravel.kill();
+  }
+
+  if (!vite.killed) {
+    vite.kill();
   }
 
   process.exit(code || 0);

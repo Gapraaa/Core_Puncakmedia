@@ -44,6 +44,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
                 ->middleware('role:master,superadmin,head-office');
 
             Route::resource('villas', VillaController::class)->except('show');
+            Route::get('villas/{villa}/images', [VillaImageController::class, 'index'])->name('villas.images.index');
             Route::post('villas/{villa}/images', [VillaImageController::class, 'store'])->name('villas.images.store');
             Route::patch('villas/{villa}/images/order', [VillaImageController::class, 'reorder'])->name('villas.images.reorder');
             Route::patch('villas/{villa}/images/{villaImage}/cover', [VillaImageController::class, 'setCover'])->name('villas.images.cover');

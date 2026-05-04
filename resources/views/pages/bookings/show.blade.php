@@ -125,7 +125,9 @@
 
             <div class="col-span-12 xl:col-span-5">
                 <x-common.component-card title="Pisahkan Invoice" desc="Gunakan hanya jika tamu meminta invoice terpisah. Booking internal tetap satu sumber utama.">
-                    <form method="POST" action="{{ route('bookings.invoices.split', $booking) }}" class="space-y-4">
+                    <form method="POST" action="{{ route('bookings.invoices.split', $booking) }}" class="space-y-4"
+                        data-toast-loading="Invoice terpisah sedang dibuat dari item booking terpilih."
+                        data-toast-loading-title="Membuat Invoice Terpisah">
                         @csrf
                         <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Label Invoice Baru</label>
@@ -174,7 +176,9 @@
         {{-- Tambah Pembayaran (hanya jika belum lunas dan belum cancelled) --}}
         @if ($booking->payment_status !== 'lunas' && $booking->booking_status !== 'cancelled')
             <x-common.component-card title="Tambah Pembayaran" desc="Cicilan atau pelunasan untuk booking ini.">
-                <form method="POST" action="{{ route('bookings.payments.store', $booking) }}" class="space-y-4">
+                <form method="POST" action="{{ route('bookings.payments.store', $booking) }}" class="space-y-4"
+                    data-toast-loading="Pembayaran sedang dicatat dan status booking akan diperbarui."
+                    data-toast-loading-title="Mencatat Pembayaran">
                     @csrf
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
                         <div>

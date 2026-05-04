@@ -13,7 +13,7 @@
 
 <div class="space-y-6">
     <x-common.component-card title="Upload Gambar Villa" desc="Upload banyak gambar sekaligus. File asli disimpan rapi per villa, lalu diproses ke WebP lewat queue agar siap dipakai untuk gallery dan cover.">
-        <form method="POST" action="{{ route('villas.images.store', $villa) }}" enctype="multipart/form-data" class="space-y-4">
+        <form method="POST" action="{{ route('villas.images.store', $villa) }}" enctype="multipart/form-data" class="space-y-4" data-toast-loading="Gambar sedang diunggah dan akan masuk antrean proses WebP." data-toast-loading-title="Mengunggah Gambar">
             @csrf
 
             <div>
@@ -39,7 +39,7 @@
     </x-common.component-card>
 
     <x-common.component-card title="Gallery Villa" desc="Atur cover utama, hapus gambar yang tidak dipakai, dan simpan urutan gallery dengan drag and drop.">
-        <div x-data="villaGalleryManager(@js(['images' => $galleryImages]))" class="space-y-5">
+        <div x-data="villaGalleryManager(@js(['images' => $galleryImages, 'statusUrl' => route('villas.images.index', $villa)]))" class="space-y-5">
             <template x-if="!hasImages()">
                 <div class="rounded-xl border border-dashed border-gray-300 px-5 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                     Belum ada gambar untuk villa ini. Upload gambar dulu agar gallery bisa diatur.
@@ -59,11 +59,37 @@
                             >
                                 <div class="relative aspect-[4/3] bg-gray-100 dark:bg-gray-800">
                                     <template x-if="image.preview_url">
-                                        <img :src="image.preview_url" :alt="image.original_name" class="h-full w-full object-cover" />
+                                        <img
+                                            :src="image.preview_url"
+                                            :alt="image.original_name"
+                                            class="h-full w-full object-cover transition duration-500"
+                                            :class="image.status === 'ready' ? 'opacity-100' : 'opacity-45 scale-[1.02]'"
+                                        />
                                     </template>
                                     <template x-if="!image.preview_url">
-                                        <div class="flex h-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">Sedang diproses...</div>
+                                        <div class="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800"></div>
                                     </template>
+
+                                    <div
+                                        x-show="image.status === 'pending' || image.status === 'processing'"
+                                        class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/35 backdrop-blur-[1px]"
+                                    >
+                                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-white/25 border-t-white"></div>
+                                        <div class="space-y-1 text-center text-white">
+                                            <p class="text-sm font-semibold" x-text="image.status === 'pending' ? 'Masuk antrean proses' : 'Sedang memproses gambar'"></p>
+                                            <p class="text-xs text-white/80">Mohon tunggu, versi preview WebP sedang disiapkan.</p>
+                                        </div>
+                                        <div class="h-1.5 w-36 overflow-hidden rounded-full bg-white/20">
+                                            <div class="h-full w-1/2 animate-pulse rounded-full bg-white"></div>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        x-show="image.status === 'failed'"
+                                        class="absolute inset-x-4 bottom-4 rounded-xl border border-error-300 bg-error-500/90 px-3 py-2 text-xs font-medium text-white shadow-lg"
+                                    >
+                                        Proses gambar gagal. Coba upload ulang atau proses ulang dari server queue.
+                                    </div>
 
                                     <div class="absolute left-3 top-3 flex flex-wrap gap-2">
                                         <span class="inline-flex items-center rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white">Urutan <span class="ml-1" x-text="index + 1"></span></span>
@@ -90,7 +116,7 @@
                                     </div>
 
                                     <div class="flex flex-wrap gap-2">
-                                        <form method="POST" :action="`{{ url('master-data/villas/'.$villa->id.'/images') }}/${image.id}/cover`">
+                                        <form method="POST" :action="`{{ url('master-data/villas/'.$villa->id.'/images') }}/${image.id}/cover`" data-toast-loading="Cover villa sedang diperbarui." data-toast-loading-title="Memperbarui Cover">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="rounded-lg border border-brand-200 px-3 py-2 text-xs font-medium text-brand-600 transition hover:bg-brand-50 dark:border-brand-800/50 dark:text-brand-300 dark:hover:bg-brand-500/10">
@@ -98,7 +124,7 @@
                                             </button>
                                         </form>
 
-                                        <form method="POST" :action="`{{ url('master-data/villas/'.$villa->id.'/images') }}/${image.id}`" onsubmit="return confirm('Hapus gambar ini dari gallery villa?')">
+                                        <form method="POST" :action="`{{ url('master-data/villas/'.$villa->id.'/images') }}/${image.id}`" data-confirm="Hapus gambar ini dari gallery villa?" data-confirm-title="Hapus Gambar Gallery" data-confirm-label="Ya, hapus gambar" data-toast-loading="Gambar sedang dihapus dari gallery villa." data-toast-loading-title="Menghapus Gambar">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="rounded-lg border border-error-200 px-3 py-2 text-xs font-medium text-error-600 transition hover:bg-error-50 dark:border-error-800 dark:text-error-400 dark:hover:bg-error-500/10">
@@ -111,7 +137,7 @@
                         </template>
                     </div>
 
-                    <form method="POST" action="{{ route('villas.images.reorder', $villa) }}" class="space-y-4">
+                    <form method="POST" action="{{ route('villas.images.reorder', $villa) }}" class="space-y-4" data-toast-loading="Urutan gallery sedang disimpan." data-toast-loading-title="Menyimpan Urutan Gallery">
                         @csrf
                         @method('PATCH')
                         <template x-for="image in images" :key="`sort-${image.id}`">

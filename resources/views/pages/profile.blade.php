@@ -69,7 +69,9 @@
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <x-common.component-card title="Edit Profil" desc="Perbarui nama, username, dan email akun yang sedang login.">
-                <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
+                <form method="POST" action="{{ route('profile.update') }}" class="space-y-4"
+                    data-toast-loading="Profil akun sedang diperbarui."
+                    data-toast-loading-title="Menyimpan Profil">
                     @csrf
                     @method('PUT')
                     <div>
@@ -94,7 +96,9 @@
             </x-common.component-card>
 
             <x-common.component-card title="Ganti Kata Sandi" desc="Gunakan kata sandi saat ini untuk mengatur kata sandi baru.">
-                <form method="POST" action="{{ route('profile.password.update') }}" class="space-y-4">
+                <form method="POST" action="{{ route('profile.password.update') }}" class="space-y-4"
+                    data-toast-loading="Kata sandi baru sedang disimpan."
+                    data-toast-loading-title="Memperbarui Kata Sandi">
                     @csrf
                     @method('PUT')
                     <div>

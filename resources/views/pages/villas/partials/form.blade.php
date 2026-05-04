@@ -51,7 +51,9 @@
 >
     <div class="col-span-12">
         <x-common.component-card :title="$pageTitle" :desc="$pageDescription">
-            <form method="POST" action="{{ $formAction }}" class="space-y-6">
+            <form method="POST" action="{{ $formAction }}" class="space-y-6"
+                data-toast-loading="Data villa sedang disimpan."
+                data-toast-loading-title="{{ isset($httpMethod) ? 'Memperbarui Villa' : 'Menyimpan Villa' }}">
                 @csrf
                 @isset($httpMethod)
                     @method($httpMethod)

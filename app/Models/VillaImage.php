@@ -66,6 +66,10 @@ class VillaImage extends Model
             return null;
         }
 
+        if (in_array($this->disk, ['public', 'local'], true)) {
+            return '/storage/'.ltrim(str_replace('\\', '/', $path), '/');
+        }
+
         return Storage::disk($this->disk)->url($path);
     }
 }

@@ -67,7 +67,7 @@
                                 <td class="px-5 py-4">
                                     <div class="flex items-center justify-end gap-2">
                                         <a href="{{ route('users.edit', $managedUser) }}" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Edit</a>
-                                        <form method="POST" action="{{ route('users.destroy', $managedUser) }}" onsubmit="return confirm('Hapus user ini?');">
+                                        <form method="POST" action="{{ route('users.destroy', $managedUser) }}" data-confirm="Hapus user ini?" data-confirm-title="Hapus User" data-confirm-label="Ya, hapus user" data-toast-loading="User sedang dihapus dari sistem." data-toast-loading-title="Menghapus User">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="rounded-lg border border-error-200 px-4 py-2 text-sm font-medium text-error-600 transition hover:bg-error-50 dark:border-error-800 dark:text-error-400 dark:hover:bg-error-500/10">Hapus</button>

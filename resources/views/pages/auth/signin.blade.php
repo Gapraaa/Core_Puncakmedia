@@ -16,7 +16,9 @@
                         </div>
                         <div>
                             <x-common.flash-messages />
-                            <form method="POST" action="{{ route('signin.store') }}">
+                            <form method="POST" action="{{ route('signin.store') }}"
+                                data-toast-loading="Sedang memeriksa akun dan menyiapkan dashboard."
+                                data-toast-loading-title="Masuk ke Sistem">
                                 @csrf
                                 <div class="space-y-5">
                                     <div>

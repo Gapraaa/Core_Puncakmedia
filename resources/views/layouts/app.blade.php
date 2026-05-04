@@ -8,11 +8,24 @@
 
     <title>{{ $title ?? 'Dashboard' }} | TailAdmin - Laravel Tailwind CSS Admin Dashboard Template</title>
 
+    <script>
+        (() => {
+            const html = document.documentElement;
+            const savedTheme = localStorage.getItem('theme');
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            const theme = savedTheme || systemTheme;
+            const savedSidebarExpanded = localStorage.getItem('sidebar_expanded');
+            const isDesktop = window.innerWidth >= 1280;
+            const isSidebarExpanded = isDesktop ? (savedSidebarExpanded !== null ? savedSidebarExpanded === 'true' : true) : false;
+
+            html.classList.toggle('dark', theme === 'dark');
+            html.classList.toggle('sidebar-expanded', isSidebarExpanded);
+            html.classList.toggle('sidebar-collapsed', !isSidebarExpanded);
+        })();
+    </script>
+
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <!-- Alpine.js -->
-    {{-- <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script> --}}
 
     <!-- Theme Store -->
     <script>
@@ -33,32 +46,52 @@
                 },
                 updateTheme() {
                     const html = document.documentElement;
-                    const body = document.body;
-                    if (this.theme === 'dark') {
-                        html.classList.add('dark');
-                        body.classList.add('dark', 'bg-gray-900');
-                    } else {
-                        html.classList.remove('dark');
-                        body.classList.remove('dark', 'bg-gray-900');
-                    }
+                    html.classList.toggle('dark', this.theme === 'dark');
                 }
             });
 
             Alpine.store('sidebar', {
-                // Initialize based on screen size
-                isExpanded: window.innerWidth >= 1280, // true for desktop, false for mobile
+                isExpanded: window.innerWidth >= 1280,
                 isMobileOpen: false,
                 isHovered: false,
+                init() {
+                    this.syncWithViewport();
+                },
+                persistExpanded() {
+                    localStorage.setItem('sidebar_expanded', this.isExpanded ? 'true' : 'false');
+                },
+                syncDocumentState() {
+                    const html = document.documentElement;
+                    html.classList.toggle('sidebar-expanded', this.isExpanded);
+                    html.classList.toggle('sidebar-collapsed', !this.isExpanded);
+                },
+                syncWithViewport() {
+                    const isDesktop = window.innerWidth >= 1280;
+
+                    if (!isDesktop) {
+                        this.isExpanded = false;
+                        this.isHovered = false;
+                        this.isMobileOpen = false;
+                        this.syncDocumentState();
+                        return;
+                    }
+
+                    const savedSidebarExpanded = localStorage.getItem('sidebar_expanded');
+                    this.isExpanded = savedSidebarExpanded !== null ? savedSidebarExpanded === 'true' : true;
+                    this.isHovered = false;
+                    this.isMobileOpen = false;
+                    this.syncDocumentState();
+                },
 
                 toggleExpanded() {
                     this.isExpanded = !this.isExpanded;
-                    // When toggling desktop sidebar, ensure mobile menu is closed
+                    this.persistExpanded();
+                    this.syncDocumentState();
                     this.isMobileOpen = false;
                 },
 
                 toggleMobileOpen() {
                     this.isMobileOpen = !this.isMobileOpen;
-                    // Don't modify isExpanded when toggling mobile menu
                 },
 
                 setMobileOpen(val) {
@@ -66,7 +99,6 @@
                 },
 
                 setHovered(val) {
-                    // Only allow hover effects on desktop when sidebar is collapsed
                     if (window.innerWidth >= 1280 && !this.isExpanded) {
                         this.isHovered = val;
                     }
@@ -74,31 +106,12 @@
             });
         });
     </script>
-
-    <!-- Apply dark mode immediately to prevent flash -->
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            const theme = savedTheme || systemTheme;
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                document.body.classList.add('dark', 'bg-gray-900');
-            } else {
-                document.documentElement.classList.remove('dark');
-                document.body.classList.remove('dark', 'bg-gray-900');
-            }
-        })();
-    </script>
-    
 </head>
 
 <body
     x-data="{
         loaded: true,
-        layoutReady: false,
         loaderTimer: null,
-        loaderInitialized: false,
         hideLoader() {
             if (this.loaderTimer) {
                 clearTimeout(this.loaderTimer);
@@ -112,7 +125,6 @@
                 this.loaderTimer = null;
             }
             this.loaded = true;
-            this.layoutReady = false;
         },
         scheduleLoader() {
             if (this.loaderTimer) {
@@ -121,7 +133,7 @@
 
             this.loaderTimer = window.setTimeout(() => {
                 this.showLoader();
-            }, 120);
+            }, 350);
         },
         shouldHandleNavigation(link) {
             if (!link) {
@@ -129,6 +141,10 @@
             }
 
             if (link.target === '_blank' || link.hasAttribute('download') || link.dataset.skipLoading !== undefined) {
+                return false;
+            }
+
+            if (link.dataset.showLoading === undefined) {
                 return false;
             }
 
@@ -145,40 +161,15 @@
             } catch (error) {
                 return false;
             }
-        },
-        finishInitialLayout() {
-            if (this.loaderInitialized) {
-                return;
-            }
-
-            this.loaderInitialized = true;
-            requestAnimationFrame(() => {
-                this.layoutReady = true;
-                this.hideLoader();
-            });
         }
     }"
-    x-init="$store.sidebar.isExpanded = window.innerWidth >= 1280;
-    const checkMobile = () => {
-        if (window.innerWidth < 1280) {
-            $store.sidebar.setMobileOpen(false);
-            $store.sidebar.isExpanded = false;
-        } else {
-            $store.sidebar.isMobileOpen = false;
-            $store.sidebar.isExpanded = true;
-        }
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+    x-init="$store.sidebar.init();
+    const syncSidebarViewport = () => $store.sidebar.syncWithViewport();
+    window.addEventListener('resize', syncSidebarViewport);
     window.addEventListener('pageshow', () => {
-        layoutReady = true;
         hideLoader();
     });
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        finishInitialLayout();
-    } else {
-        document.addEventListener('DOMContentLoaded', () => finishInitialLayout(), { once: true });
-    }
+    requestAnimationFrame(() => hideLoader());
     document.addEventListener('click', (event) => {
         const link = event.target.closest('a');
 
@@ -193,24 +184,21 @@
             return;
         }
 
-        scheduleLoader();
+        if (form.method.toUpperCase() !== 'GET') {
+            scheduleLoader();
+        }
     }, true);">
 
     {{-- preloader --}}
     <x-common.preloader />
     {{-- preloader end --}}
 
-    <div
-        class="min-h-screen xl:flex transition-opacity duration-150"
-        :class="layoutReady ? 'opacity-100' : 'opacity-0'"
-        :style="layoutReady ? '' : 'visibility:hidden'"
-    >
+    <div class="min-h-screen xl:flex">
         @include('layouts.backdrop')
         @include('layouts.sidebar')
 
-        <div class="flex-1"
+        <div id="app-shell-main" class="flex-1 xl:ml-[290px]"
             :class="{
-                'transition-[margin] duration-300 ease-in-out': layoutReady,
                 'xl:ml-[290px]': $store.sidebar.isExpanded || $store.sidebar.isHovered,
                 'xl:ml-[90px]': !$store.sidebar.isExpanded && !$store.sidebar.isHovered,
                 'ml-0': $store.sidebar.isMobileOpen
@@ -225,6 +213,9 @@
         </div>
 
     </div>
+
+    <x-common.toast-stack />
+    <x-common.confirm-dialog />
 
 </body>
 

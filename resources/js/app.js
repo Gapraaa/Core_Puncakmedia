@@ -23,6 +23,81 @@ const formatLocalizedDate = (date, options = {}) => date.toLocaleDateString(APP_
     ...options,
 });
 
+document.addEventListener('alpine:init', () => {
+    Alpine.store('toastCenter', {
+        toasts: [],
+        nextId: 1,
+        push(payload = {}) {
+            const id = this.nextId++;
+            const toast = {
+                id,
+                key: payload.key ?? null,
+                variant: payload.variant ?? 'info',
+                title: payload.title ?? this.defaultTitle(payload.variant ?? 'info'),
+                message: payload.message ?? '',
+                duration: Number(payload.duration ?? 4500),
+            };
+
+            this.toasts.push(toast);
+
+            if (toast.duration > 0) {
+                window.setTimeout(() => this.remove(id), toast.duration);
+            }
+        },
+        remove(id) {
+            this.toasts = this.toasts.filter((toast) => toast.id !== id);
+        },
+        removeByKey(key) {
+            if (!key) {
+                return;
+            }
+
+            this.toasts = this.toasts.filter((toast) => toast.key !== key);
+        },
+        defaultTitle(variant) {
+            return ({
+                success: 'Berhasil',
+                error: 'Terjadi Kesalahan',
+                warning: 'Perlu Perhatian',
+                info: 'Informasi',
+            })[variant] ?? 'Informasi';
+        },
+    });
+
+    Alpine.store('confirmDialog', {
+        open: false,
+        title: 'Konfirmasi Aksi',
+        message: 'Apakah kamu yakin ingin melanjutkan aksi ini?',
+        confirmLabel: 'Lanjutkan',
+        cancelLabel: 'Batal',
+        tone: 'danger',
+        onConfirm: null,
+        ask(options = {}) {
+            this.title = options.title ?? 'Konfirmasi Aksi';
+            this.message = options.message ?? 'Apakah kamu yakin ingin melanjutkan aksi ini?';
+            this.confirmLabel = options.confirmLabel ?? 'Lanjutkan';
+            this.cancelLabel = options.cancelLabel ?? 'Batal';
+            this.tone = options.tone ?? 'danger';
+            this.onConfirm = typeof options.onConfirm === 'function' ? options.onConfirm : null;
+            this.open = true;
+            document.body.style.overflow = 'hidden';
+        },
+        close() {
+            this.open = false;
+            this.onConfirm = null;
+            document.body.style.overflow = 'unset';
+        },
+        confirm() {
+            const callback = this.onConfirm;
+            this.close();
+
+            if (callback) {
+                callback();
+            }
+        },
+    });
+});
+
 Alpine.data('villaForm', (config) => ({
     isResort: Boolean(config.isResort),
     showUpdateConfirmation: false,
@@ -178,7 +253,13 @@ Alpine.data('villaForm', (config) => ({
 
 Alpine.data('villaGalleryManager', (config) => ({
     images: config.images ?? [],
+    statusUrl: config.statusUrl ?? '',
     dragIndex: null,
+    pollTimer: null,
+
+    init() {
+        this.startPollingIfNeeded();
+    },
 
     dragStart(index) {
         this.dragIndex = index;
@@ -195,10 +276,83 @@ Alpine.data('villaGalleryManager', (config) => ({
         reordered.splice(index, 0, moved);
         this.images = reordered;
         this.dragIndex = null;
+        this.startPollingIfNeeded();
     },
 
     hasImages() {
         return this.images.length > 0;
+    },
+
+    hasProcessingImages() {
+        return this.images.some((image) => ['pending', 'processing'].includes(image.status));
+    },
+
+    startPollingIfNeeded() {
+        this.stopPolling();
+
+        if (!this.statusUrl || !this.hasProcessingImages()) {
+            return;
+        }
+
+        this.pollTimer = window.setInterval(() => {
+            this.refreshStatuses();
+        }, 5000);
+    },
+
+    stopPolling() {
+        if (this.pollTimer) {
+            window.clearInterval(this.pollTimer);
+            this.pollTimer = null;
+        }
+    },
+
+    async refreshStatuses() {
+        if (!this.statusUrl) {
+            return;
+        }
+
+        try {
+            const response = await fetch(this.statusUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const payload = await response.json();
+            const nextImages = Array.isArray(payload.images) ? payload.images : [];
+            const previousStatuses = new Map(this.images.map((image) => [image.id, image.status]));
+
+            this.images = nextImages;
+
+            const becameReady = nextImages.filter((image) => previousStatuses.get(image.id) !== 'ready' && image.status === 'ready');
+            const becameFailed = nextImages.filter((image) => previousStatuses.get(image.id) !== 'failed' && image.status === 'failed');
+
+            becameReady.forEach((image) => {
+                Alpine.store('toastCenter').push({
+                    variant: 'success',
+                    title: 'Gambar Siap',
+                    message: `${image.original_name} selesai diproses dan siap dipakai di gallery.`,
+                });
+            });
+
+            becameFailed.forEach((image) => {
+                Alpine.store('toastCenter').push({
+                    variant: 'error',
+                    title: 'Proses Gambar Gagal',
+                    message: `${image.original_name} gagal diproses. Coba upload ulang gambar tersebut.`,
+                });
+            });
+
+            this.startPollingIfNeeded();
+        } catch (error) {
+            // Keep the current UI stable; polling can try again on the next cycle.
+        }
     },
 }));
 
@@ -756,9 +910,75 @@ const initializeMoneyInput = (input) => {
 };
 
 Alpine.start();
+document.documentElement.dataset.alpineReady = 'true';
 
 // Initialize components on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
+    const showLoadingToastForForm = (form) => {
+        const message = form.dataset.toastLoading;
+
+        if (!message) {
+            return;
+        }
+
+        Alpine.store('toastCenter').removeByKey(`form-loading:${form.action}`);
+        Alpine.store('toastCenter').push({
+            key: `form-loading:${form.action}`,
+            variant: form.dataset.toastLoadingVariant || 'info',
+            title: form.dataset.toastLoadingTitle || 'Sedang Diproses',
+            message,
+            duration: 0,
+        });
+    };
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        if (form.dataset.confirmBypassed === 'true') {
+            form.dataset.confirmBypassed = 'false';
+            return;
+        }
+
+        const message = form.dataset.confirm;
+
+        if (!message) {
+            return;
+        }
+
+        event.preventDefault();
+
+        Alpine.store('confirmDialog').ask({
+            title: form.dataset.confirmTitle || 'Konfirmasi Aksi',
+            message,
+            confirmLabel: form.dataset.confirmLabel || 'Ya, lanjutkan',
+            cancelLabel: form.dataset.cancelLabel || 'Batal',
+            tone: form.dataset.confirmTone || 'danger',
+            onConfirm: () => {
+                form.dataset.confirmBypassed = 'true';
+                showLoadingToastForForm(form);
+                HTMLFormElement.prototype.submit.call(form);
+            },
+        });
+    }, true);
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        if (form.dataset.confirm && form.dataset.confirmBypassed !== 'true') {
+            return;
+        }
+
+        showLoadingToastForForm(form);
+    }, true);
+
     document.querySelectorAll('input[data-money]').forEach(initializeMoneyInput);
 
     // Map imports

@@ -17,27 +17,34 @@ class VillaImageManager
         $uuid = (string) Str::uuid();
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
         $baseDirectory = $this->baseDirectory($villa, $uuid);
-        $originalPath = $baseDirectory.'/original.'.$extension;
+        $generatedName = $this->buildGeneratedFilename($villa, $extension);
+        $originalPath = $baseDirectory.'/'.$generatedName;
 
-        Storage::disk($disk)->put($originalPath, file_get_contents($file->getRealPath()), [
-            'visibility' => 'public',
-        ]);
+        try {
+            Storage::disk($disk)->put($originalPath, file_get_contents($file->getRealPath()), [
+                'visibility' => 'public',
+            ]);
 
-        $imageSize = @getimagesize($file->getRealPath()) ?: [null, null, null, null, 'mime' => $file->getMimeType()];
+            $imageSize = @getimagesize($file->getRealPath()) ?: [null, null, null, null, 'mime' => $file->getMimeType()];
 
-        return $villa->images()->create([
-            'uuid' => $uuid,
-            'disk' => $disk,
-            'original_path' => $originalPath,
-            'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $imageSize['mime'] ?? $file->getMimeType(),
-            'file_size' => $file->getSize(),
-            'width' => $imageSize[0] ?? null,
-            'height' => $imageSize[1] ?? null,
-            'sort_order' => (int) $villa->images()->max('sort_order') + 1,
-            'is_cover' => ! $villa->images()->where('is_cover', true)->exists(),
-            'status' => 'pending',
-        ]);
+            return $villa->images()->create([
+                'uuid' => $uuid,
+                'disk' => $disk,
+                'original_path' => $originalPath,
+                'original_name' => $generatedName,
+                'mime_type' => $imageSize['mime'] ?? $file->getMimeType(),
+                'file_size' => $file->getSize(),
+                'width' => $imageSize[0] ?? null,
+                'height' => $imageSize[1] ?? null,
+                'sort_order' => (int) $villa->images()->max('sort_order') + 1,
+                'is_cover' => ! $villa->images()->where('is_cover', true)->exists(),
+                'status' => 'pending',
+            ]);
+        } catch (\Throwable $exception) {
+            Storage::disk($disk)->deleteDirectory($baseDirectory);
+
+            throw $exception;
+        }
     }
 
     public function process(VillaImage $image): void
@@ -92,6 +99,19 @@ class VillaImageManager
     protected function baseDirectory(Villa $villa, string $uuid): string
     {
         return "villas/{$villa->id}/images/{$uuid}";
+    }
+
+    protected function buildGeneratedFilename(Villa $villa, string $extension): string
+    {
+        $baseName = Str::slug($villa->name);
+
+        if ($baseName === '') {
+            $baseName = 'villa-'.$villa->id;
+        }
+
+        $nextOrder = (int) $villa->images()->max('sort_order') + 1;
+
+        return sprintf('%s-%02d.%s', $baseName, $nextOrder, $extension);
     }
 
     protected function createImageResource(string $binary, ?string $mimeType)

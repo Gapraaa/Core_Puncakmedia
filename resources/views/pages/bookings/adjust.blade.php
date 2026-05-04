@@ -4,7 +4,9 @@
     <x-common.page-breadcrumb pageTitle="Penyesuaian Booking" />
 
     <x-common.component-card title="Penyesuaian Booking" desc="Tambahkan add-on baru atau extend booking tanpa membuat booking baru.">
-        <form x-data="{ checkout: '{{ $booking->check_out->format('Y-m-d') }}' }" method="POST" action="{{ route('bookings.adjustments.store', $booking) }}" class="space-y-6">
+        <form x-data="{ checkout: '{{ $booking->check_out->format('Y-m-d') }}' }" method="POST" action="{{ route('bookings.adjustments.store', $booking) }}" class="space-y-6"
+            data-toast-loading="Penyesuaian booking sedang diproses dan total booking akan dihitung ulang."
+            data-toast-loading-title="Menyimpan Penyesuaian Booking">
             @csrf
             <div class="rounded-xl border border-gray-100 px-4 py-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-300">
                 Booking: <span class="font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}</span> | {{ $booking->guest_name }} | {{ $booking->villa?->name }} - {{ $booking->villaUnit?->unit_name }}

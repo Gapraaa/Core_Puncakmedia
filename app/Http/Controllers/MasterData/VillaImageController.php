@@ -7,13 +7,36 @@ use App\Jobs\ProcessVillaImage;
 use App\Models\Villa;
 use App\Models\VillaImage;
 use App\Support\VillaImageManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 
 class VillaImageController extends Controller
 {
+    public function index(Villa $villa): JsonResponse
+    {
+        $images = $villa->images()
+            ->get()
+            ->map(fn (VillaImage $image): array => [
+                'id' => $image->id,
+                'uuid' => $image->uuid,
+                'preview_url' => $image->preview_url,
+                'display_url' => $image->display_url,
+                'original_name' => $image->original_name,
+                'is_cover' => $image->is_cover,
+                'status' => $image->status,
+                'sort_order' => $image->sort_order,
+            ])
+            ->values();
+
+        return response()->json([
+            'images' => $images,
+        ]);
+    }
+
     public function store(Request $request, Villa $villa, VillaImageManager $manager): RedirectResponse
     {
         $validated = $request->validate([
@@ -25,15 +48,23 @@ class VillaImageController extends Controller
             'images.*.max' => 'Ukuran setiap gambar maksimal 5 MB.',
         ]);
 
-        $uploadedImages = DB::transaction(function () use ($validated, $villa, $manager) {
-            $images = [];
+        $uploadedImages = [];
 
-            foreach ($validated['images'] as $file) {
-                $images[] = $manager->uploadOriginal($villa, $file);
+        try {
+            $uploadedImages = DB::transaction(function () use ($validated, $villa, $manager, &$uploadedImages) {
+                foreach ($validated['images'] as $file) {
+                    $uploadedImages[] = $manager->uploadOriginal($villa, $file);
+                }
+
+                return $uploadedImages;
+            });
+        } catch (\Throwable $exception) {
+            foreach ($uploadedImages as $image) {
+                $manager->deleteFiles($image);
             }
 
-            return $images;
-        });
+            throw $exception;
+        }
 
         foreach ($uploadedImages as $image) {
             ProcessVillaImage::dispatch($image->id)->afterCommit();
@@ -59,9 +90,19 @@ class VillaImageController extends Controller
             'ordered_image_ids.*' => [
                 'required',
                 'integer',
+                'distinct',
                 Rule::exists('villa_images', 'id')->where(fn ($query) => $query->where('villa_id', $villa->id)),
             ],
         ]);
+
+        $expectedImageIds = $villa->images()->pluck('id')->sort()->values()->all();
+        $receivedImageIds = collect($validated['ordered_image_ids'])->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+        if ($expectedImageIds !== $receivedImageIds) {
+            throw ValidationException::withMessages([
+                'ordered_image_ids' => 'Urutan gallery harus memuat semua gambar villa tanpa ada duplikasi atau data yang terlewat.',
+            ]);
+        }
 
         DB::transaction(function () use ($validated, $villa): void {
             foreach (array_values($validated['ordered_image_ids']) as $index => $imageId) {

@@ -25,6 +25,12 @@ class ProcessVillaImage implements ShouldQueue
 
         $image->update(['status' => 'processing']);
 
-        $manager->process($image->fresh());
+        try {
+            $manager->process($image->fresh());
+        } catch (\Throwable $exception) {
+            $image->fresh()?->update(['status' => 'failed']);
+
+            throw $exception;
+        }
     }
 }

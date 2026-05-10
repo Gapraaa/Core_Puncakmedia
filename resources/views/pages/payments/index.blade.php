@@ -3,14 +3,14 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Daftar Pembayaran" />
 
-    <div class="space-y-6">
+    <div class="space-y-6" data-async-page="true">
         <div>
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Katalog Villa Pembayaran</h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pilih villa terlebih dahulu. Villa biasa langsung ke daftar pembayaran, sedangkan resort masuk ke daftar unit dulu.</p>
         </div>
 
         <x-common.component-card title="Filter Villa" desc="Cari villa atau resort sebelum masuk ke daftar pembayaran yang tercatat.">
-            <form method="GET" action="{{ route('payments.index') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <form data-async-page-form="true" method="GET" action="{{ route('payments.index') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="xl:col-span-2">
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pencarian</label>
                     <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama villa, slug, atau lokasi" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
@@ -58,7 +58,19 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada villa atau resort yang cocok dengan filter.</td></tr>
+                            <tr>
+                                <td colspan="6" class="px-5 py-10">
+                                    <x-common.empty-state
+                                        compact
+                                        title="Belum Ada Data Pembayaran"
+                                        description="Daftar pembayaran akan terisi setelah ada villa dan booking. Mulai dari tambah villa dulu, lalu buat booking pertama."
+                                        actionLabel="Tambah Villa"
+                                        :actionHref="route('villas.create')"
+                                        secondaryActionLabel="Buka Booking"
+                                        :secondaryActionHref="route('bookings.index')"
+                                    />
+                                </td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>

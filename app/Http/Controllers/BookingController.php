@@ -459,14 +459,6 @@ class BookingController extends Controller
         $villas = Villa::query()
             ->with(['brands', 'units'])
             ->withCount('bookings')
-            ->when($request->filled('q'), function (Builder $query) use ($request): void {
-                $keyword = trim((string) $request->string('q'));
-                $query->where(function (Builder $innerQuery) use ($keyword): void {
-                    $innerQuery
-                        ->where('name', 'like', "%{$keyword}%")
-                        ->orWhere('location', 'like', "%{$keyword}%");
-                });
-            })
             ->latest()
             ->get();
 
@@ -503,6 +495,22 @@ class BookingController extends Controller
                 ];
             })->all();
         })->values();
+
+        if ($request->filled('q')) {
+            $keyword = Str::lower(trim((string) $request->string('q')));
+
+            $rows = $rows->filter(function (array $row) use ($keyword): bool {
+                $haystack = collect([
+                    $row['display_name'] ?? '',
+                    $row['villa']->name ?? '',
+                    $row['villa']->location ?? '',
+                    $row['unit']?->unit_name ?? '',
+                    $row['type_label'] ?? '',
+                ])->implode(' ');
+
+                return str_contains(Str::lower($haystack), $keyword);
+            })->values();
+        }
 
         $paginatedRows = $rows->slice(($currentPage - 1) * $perPage, $perPage)->values();
 

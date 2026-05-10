@@ -145,6 +145,99 @@ class VillaImageController extends Controller
         return back()->with('success', 'Cover villa berhasil diperbarui.');
     }
 
+    public function retry(Villa $villa, VillaImage $villaImage, VillaImageManager $manager): RedirectResponse
+    {
+        abort_unless($villaImage->villa_id === $villa->id, 404);
+
+        if ($villaImage->status !== 'failed') {
+            return back()->with('warning', 'Gambar ini tidak sedang dalam status gagal proses.');
+        }
+
+        DB::transaction(function () use ($villaImage, $manager): void {
+            $manager->resetProcessedFiles($villaImage);
+
+            $villaImage->forceFill([
+                'status' => 'pending',
+                'processed_at' => null,
+                'webp_path' => null,
+                'thumb_path' => null,
+            ])->save();
+        });
+
+        ProcessVillaImage::dispatch($villaImage->id)->afterCommit();
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'update',
+            description: 'Retry proses gambar villa dijalankan ulang.',
+            subject: $villa,
+            properties: [
+                'retry_image_id' => $villaImage->id,
+                'retry_image_name' => $villaImage->original_name,
+            ],
+        );
+
+        return back()->with('success', 'Proses gambar villa diulang kembali dan masuk antrean queue.');
+    }
+
+    public function bulkDestroy(Request $request, Villa $villa, VillaImageManager $manager): RedirectResponse
+    {
+        $validated = $request->validate([
+            'selected_image_ids' => ['required', 'array', 'min:1'],
+            'selected_image_ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('villa_images', 'id')->where(fn ($query) => $query->where('villa_id', $villa->id)),
+            ],
+        ], [
+            'selected_image_ids.required' => 'Pilih minimal satu gambar untuk dihapus.',
+            'selected_image_ids.min' => 'Pilih minimal satu gambar untuk dihapus.',
+        ]);
+
+        $deletedNames = [];
+
+        DB::transaction(function () use ($validated, $villa, $manager, &$deletedNames): void {
+            $images = $villa->images()
+                ->whereIn('id', $validated['selected_image_ids'])
+                ->orderBy('sort_order')
+                ->get();
+
+            $hadCoverDeleted = $images->contains(fn (VillaImage $image) => $image->is_cover);
+
+            foreach ($images as $image) {
+                $deletedNames[] = $image->original_name;
+                $manager->deleteFiles($image);
+                $image->delete();
+            }
+
+            $remainingImages = $villa->images()->orderBy('sort_order')->get();
+
+            foreach ($remainingImages as $index => $image) {
+                $image->update([
+                    'sort_order' => $index + 1,
+                    'is_cover' => $hadCoverDeleted && $index === 0 ? true : $image->is_cover,
+                ]);
+            }
+
+            if (! $remainingImages->where('is_cover', true)->count() && $remainingImages->isNotEmpty()) {
+                $remainingImages->first()?->update(['is_cover' => true]);
+            }
+        });
+
+        $this->auditLog(
+            module: 'master-data',
+            action: 'delete',
+            description: 'Beberapa gambar villa dihapus sekaligus.',
+            subject: $villa,
+            properties: [
+                'deleted_images' => implode(', ', $deletedNames),
+            ],
+        );
+
+        return back()->with('success', 'Gambar terpilih berhasil dihapus dari gallery villa.');
+    }
+
     public function destroy(Villa $villa, VillaImage $villaImage, VillaImageManager $manager): RedirectResponse
     {
         abort_unless($villaImage->villa_id === $villa->id, 404);

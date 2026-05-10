@@ -96,6 +96,19 @@ class VillaImageManager
         Storage::disk($image->disk)->deleteDirectory(dirname($image->original_path));
     }
 
+    public function resetProcessedFiles(VillaImage $image): void
+    {
+        $disk = Storage::disk($image->disk);
+
+        if ($image->webp_path) {
+            $disk->delete($image->webp_path);
+        }
+
+        if ($image->thumb_path) {
+            $disk->delete($image->thumb_path);
+        }
+    }
+
     protected function baseDirectory(Villa $villa, string $uuid): string
     {
         return "villas/{$villa->id}/images/{$uuid}";

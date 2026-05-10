@@ -256,6 +256,7 @@ Alpine.data('villaGalleryManager', (config) => ({
     statusUrl: config.statusUrl ?? '',
     dragIndex: null,
     pollTimer: null,
+    selectedImageIds: [],
 
     init() {
         this.startPollingIfNeeded();
@@ -281,6 +282,42 @@ Alpine.data('villaGalleryManager', (config) => ({
 
     hasImages() {
         return this.images.length > 0;
+    },
+
+    isSelected(imageId) {
+        return this.selectedImageIds.includes(Number(imageId));
+    },
+
+    toggleSelected(imageId) {
+        const normalizedId = Number(imageId);
+
+        if (this.isSelected(normalizedId)) {
+            this.selectedImageIds = this.selectedImageIds.filter((id) => id !== normalizedId);
+            return;
+        }
+
+        this.selectedImageIds = [...this.selectedImageIds, normalizedId];
+    },
+
+    toggleSelectAll() {
+        if (this.allSelected) {
+            this.selectedImageIds = [];
+            return;
+        }
+
+        this.selectedImageIds = this.images.map((image) => Number(image.id));
+    },
+
+    clearSelection() {
+        this.selectedImageIds = [];
+    },
+
+    get allSelected() {
+        return this.images.length > 0 && this.selectedImageIds.length === this.images.length;
+    },
+
+    get hasSelection() {
+        return this.selectedImageIds.length > 0;
     },
 
     hasProcessingImages() {
@@ -327,8 +364,10 @@ Alpine.data('villaGalleryManager', (config) => ({
             const payload = await response.json();
             const nextImages = Array.isArray(payload.images) ? payload.images : [];
             const previousStatuses = new Map(this.images.map((image) => [image.id, image.status]));
+            const nextImageIds = nextImages.map((image) => Number(image.id));
 
             this.images = nextImages;
+            this.selectedImageIds = this.selectedImageIds.filter((id) => nextImageIds.includes(id));
 
             const becameReady = nextImages.filter((image) => previousStatuses.get(image.id) !== 'ready' && image.status === 'ready');
             const becameFailed = nextImages.filter((image) => previousStatuses.get(image.id) !== 'failed' && image.status === 'failed');
@@ -345,7 +384,7 @@ Alpine.data('villaGalleryManager', (config) => ({
                 Alpine.store('toastCenter').push({
                     variant: 'error',
                     title: 'Proses Gambar Gagal',
-                    message: `${image.original_name} gagal diproses. Coba upload ulang gambar tersebut.`,
+                    message: `${image.original_name} gagal diproses. Kamu bisa pakai tombol retry proses di gallery villa.`,
                 });
             });
 
@@ -708,9 +747,9 @@ Alpine.data('calendarCard', (config) => ({
 
     get monthLabel() {
         return formatLocalizedDate(this.monthDate, {
-            month: 'long',
+            month: 'short',
             year: 'numeric',
-        }).toUpperCase();
+        });
     },
 
     get weeks() {
@@ -914,6 +953,81 @@ document.documentElement.dataset.alpineReady = 'true';
 
 // Initialize components on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
+    const pageContentArea = document.getElementById('page-content-area');
+
+    const buildUrlFromForm = (form) => {
+        const action = form.getAttribute('action') || window.location.href;
+        const url = new URL(action, window.location.origin);
+        const formData = new FormData(form);
+
+        Array.from(formData.entries()).forEach(([key, value]) => {
+            if (value === null || value === undefined || String(value).trim() === '') {
+                url.searchParams.delete(key);
+                return;
+            }
+
+            url.searchParams.set(key, String(value));
+        });
+
+        url.searchParams.delete('_token');
+
+        return url;
+    };
+
+    const replaceAsyncPage = async (url, { pushState = true, resetScroll = false } = {}) => {
+        if (!pageContentArea) {
+            window.location.href = url.toString();
+            return;
+        }
+
+        const activePage = pageContentArea.querySelector('[data-async-page="true"]');
+
+        if (!activePage) {
+            window.location.href = url.toString();
+            return;
+        }
+
+        activePage.classList.add('pointer-events-none', 'opacity-60', 'transition-opacity');
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'text/html,application/xhtml+xml',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                window.location.href = url.toString();
+                return;
+            }
+
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nextPageContentArea = doc.getElementById('page-content-area');
+
+            if (!nextPageContentArea) {
+                window.location.href = url.toString();
+                return;
+            }
+
+            pageContentArea.innerHTML = nextPageContentArea.innerHTML;
+            Alpine.initTree(pageContentArea);
+
+            if (pushState) {
+                window.history.pushState({}, '', url.toString());
+            }
+
+            if (resetScroll) {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
+        } catch (error) {
+            window.location.href = url.toString();
+        }
+    };
+
     const showLoadingToastForForm = (form) => {
         const message = form.dataset.toastLoading;
 
@@ -935,6 +1049,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = event.target;
 
         if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        if (form.dataset.asyncPageForm === 'true' && form.method.toUpperCase() === 'GET') {
+            event.preventDefault();
+            replaceAsyncPage(buildUrlFromForm(form), {
+                pushState: true,
+                resetScroll: false,
+            });
             return;
         }
 
@@ -980,6 +1103,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }, true);
 
     document.querySelectorAll('input[data-money]').forEach(initializeMoneyInput);
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+
+        if (!link) {
+            return;
+        }
+
+        const isAsyncPaginationLink = link.closest('[data-async-page="true"] nav[role="navigation"]')
+            || link.dataset.asyncPageLink === 'true';
+
+        if (!isAsyncPaginationLink) {
+            return;
+        }
+
+        const href = link.getAttribute('href');
+
+        if (!href || href === '#') {
+            return;
+        }
+
+        event.preventDefault();
+        replaceAsyncPage(new URL(href, window.location.origin), {
+            pushState: true,
+            resetScroll: false,
+        });
+    });
+
+    window.addEventListener('popstate', () => {
+        if (!pageContentArea?.querySelector('[data-async-page="true"]')) {
+            return;
+        }
+
+        replaceAsyncPage(new URL(window.location.href), {
+            pushState: false,
+            resetScroll: false,
+        });
+    });
 
     // Map imports
     if (document.querySelector('#mapOne')) {

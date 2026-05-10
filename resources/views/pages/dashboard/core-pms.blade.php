@@ -3,6 +3,19 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Dashboard Core PMS" />
 
+    @if ($brandCount === 0 && $villaCount === 0 && $villaUnitCount === 0 && $bookingCount === 0)
+        <div class="mb-6">
+            <x-common.empty-state
+                title="Sistem Masih Fresh"
+                description="Starter saat ini hanya berisi roles dan user awal. Mulai dari tambah brand jika dipakai, lalu tambah villa atau resort agar modul booking, kalender, pembayaran, dan invoice bisa mulai berjalan."
+                actionLabel="Tambah Villa"
+                :actionHref="auth()->user()?->hasAnyRole(['master', 'superadmin', 'head-office', 'admin-sales']) ? route('villas.create') : route('profile')"
+                :secondaryActionLabel="auth()->user()?->hasAnyRole(['master', 'superadmin', 'head-office']) ? 'Tambah Brand' : null"
+                :secondaryActionHref="auth()->user()?->hasAnyRole(['master', 'superadmin', 'head-office']) ? route('brands.create') : null"
+            />
+        </div>
+    @endif
+
     <div class="grid grid-cols-12 gap-4 md:gap-6">
         <div class="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-8 xl:grid-cols-4">
             @foreach ([
@@ -94,7 +107,7 @@
                         <tbody>
                             @forelse ($upcomingCheckIns as $booking)
                                 <tr>
-                                    <td>{{ $booking->check_in->format('d M Y') }}</td>
+                                    <td>{{ $booking->check_in->format('j M Y') }}</td>
                                     <td class="font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $booking->villa?->name }} - {{ $booking->villaUnit?->unit_name }}</div></td>
                                     <td>{{ $booking->guest_name }}</td>
                                     <td>Rp {{ number_format($booking->remaining_balance, 0, ',', '.') }}</td>
@@ -116,7 +129,7 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $payment->booking?->booking_code ?? 'Tanpa booking' }}</p>
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('d M Y H:i') }} &middot; {{ ucfirst($payment->payment_method) }} &middot; {{ str_replace('_', ' ', $payment->received_by) }}</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('j M Y H:i') }} &middot; {{ ucfirst($payment->payment_method) }} &middot; {{ str_replace('_', ' ', $payment->received_by) }}</p>
                                 </div>
                                 <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Rp {{ number_format($payment->amount, 0, ',', '.') }}</p>
                             </div>
@@ -136,7 +149,7 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}</p>
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $booking->guest_name }} &middot; {{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $booking->guest_name }} &middot; {{ $booking->check_in->format('j M Y') }} - {{ $booking->check_out->format('j M Y') }}</p>
                                 </div>
                                 @php $paymentBadge = match($booking->payment_status) { 'lunas' => 'success', 'cicil' => 'warning', default => 'info', }; @endphp
                                 <x-ui.badge :color="$paymentBadge">{{ strtoupper($booking->payment_status) }}</x-ui.badge>

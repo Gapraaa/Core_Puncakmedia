@@ -296,6 +296,9 @@ Tujuan:
 
 ## Fase 7: Redis dan Infrastruktur Produksi
 
+Dokumen detail tambahan:
+- [Redis Adoption Plan](./redis-adoption-plan.md)
+
 Tujuan:
 - mempercepat cache dan queue di environment production
 
@@ -308,6 +311,7 @@ Tujuan:
 - cache
 - queue
 - lock/transient data
+- session
 
 ### Arah migrasi
 - `CACHE_STORE=redis`

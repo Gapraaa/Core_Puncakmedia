@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Dashboard' }} | TailAdmin - Laravel Tailwind CSS Admin Dashboard Template</title>
+    <title>{{ $title ?? 'Dashboard' }} | {{ config('app.name', 'Core PMS') }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo/logo-icon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
 
     <script>
         (() => {
@@ -109,22 +111,61 @@
 </head>
 
 <body
+    class="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
     x-data="{
-        loaded: true,
+        isLoading: false,
         loaderTimer: null,
+        scrollStateKey() {
+            return `scroll-state:${window.location.pathname}${window.location.search}`;
+        },
+        saveScrollState() {
+            const sidebarScrollArea = document.getElementById('sidebar-scroll-area');
+
+            sessionStorage.setItem(this.scrollStateKey(), JSON.stringify({
+                windowY: window.scrollY || window.pageYOffset || 0,
+                sidebarY: sidebarScrollArea ? sidebarScrollArea.scrollTop : 0,
+            }));
+        },
+        restoreScrollState() {
+            const rawState = sessionStorage.getItem(this.scrollStateKey());
+
+            if (!rawState) {
+                return;
+            }
+
+            sessionStorage.removeItem(this.scrollStateKey());
+
+            try {
+                const state = JSON.parse(rawState);
+                const sidebarScrollArea = document.getElementById('sidebar-scroll-area');
+
+                requestAnimationFrame(() => {
+                    window.scrollTo({
+                        top: Number(state.windowY ?? 0),
+                        behavior: 'auto',
+                    });
+
+                    if (sidebarScrollArea) {
+                        sidebarScrollArea.scrollTop = Number(state.sidebarY ?? 0);
+                    }
+                });
+            } catch (error) {
+                // Ignore malformed session state and let the page use default scroll.
+            }
+        },
         hideLoader() {
             if (this.loaderTimer) {
                 clearTimeout(this.loaderTimer);
                 this.loaderTimer = null;
             }
-            this.loaded = false;
+            this.isLoading = false;
         },
         showLoader() {
             if (this.loaderTimer) {
                 clearTimeout(this.loaderTimer);
                 this.loaderTimer = null;
             }
-            this.loaded = true;
+            this.isLoading = true;
         },
         scheduleLoader() {
             if (this.loaderTimer) {
@@ -167,9 +208,13 @@
     const syncSidebarViewport = () => $store.sidebar.syncWithViewport();
     window.addEventListener('resize', syncSidebarViewport);
     window.addEventListener('pageshow', () => {
+        restoreScrollState();
         hideLoader();
     });
-    requestAnimationFrame(() => hideLoader());
+    requestAnimationFrame(() => {
+        restoreScrollState();
+        hideLoader();
+    });
     document.addEventListener('click', (event) => {
         const link = event.target.closest('a');
 
@@ -184,7 +229,12 @@
             return;
         }
 
+        if (form.dataset.confirm && form.dataset.confirmBypassed !== 'true') {
+            return;
+        }
+
         if (form.method.toUpperCase() !== 'GET') {
+            saveScrollState();
             scheduleLoader();
         }
     }, true);">
@@ -206,7 +256,7 @@
             <!-- app header start -->
             @include('layouts.app-header')
             <!-- app header end -->
-            <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+            <div id="page-content-area" class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
                 <x-common.flash-messages />
                 @yield('content')
             </div>

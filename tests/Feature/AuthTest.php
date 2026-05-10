@@ -43,7 +43,7 @@ test('user can login using username', function () {
     $this->assertAuthenticated();
 });
 
-test('finance cannot access migration page', function () {
+test('finance cannot access user management module', function () {
     $financeRole = Role::query()->firstOrCreate([
         'slug' => 'finance',
     ], [
@@ -55,7 +55,7 @@ test('finance cannot access migration page', function () {
 
     actingAs($user);
 
-    get(route('migration.legacy'))
+    get(route('users.index'))
         ->assertForbidden();
 });
 

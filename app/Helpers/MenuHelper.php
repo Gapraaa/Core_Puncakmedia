@@ -68,12 +68,6 @@ class MenuHelper
                         'path' => route('reports.finance'),
                         'roles' => ['master', 'superadmin', 'head-office', 'finance'],
                     ],
-                    [
-                        'icon' => 'task',
-                        'name' => 'Pemetaan Legacy',
-                        'path' => route('migration.legacy'),
-                        'roles' => ['master', 'superadmin'],
-                    ],
                 ],
             ],
             [

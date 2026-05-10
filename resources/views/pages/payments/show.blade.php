@@ -7,7 +7,7 @@
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Pembayaran untuk {{ $payment->booking?->booking_code ?? 'Booking tidak ditemukan' }}</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('d M Y H:i') }}</p>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $payment->paid_at?->format('j M Y H:i') }}</p>
             </div>
             <div class="flex gap-2">
                 @if ($payment->booking)

@@ -3,7 +3,7 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Daftar Booking" />
 
-    <div class="space-y-6">
+    <div class="space-y-6" data-async-page="true">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Daftar Booking - {{ $villa->name }}</h2>
@@ -33,14 +33,14 @@
             </div>
             <div class="ops-kpi-card">
                 <div class="ops-kpi-label">Check-in Terdekat</div>
-                <div class="ops-kpi-value text-xl">{{ optional($bookings->getCollection()->sortBy('check_in')->first()?->check_in)->format('d M Y') ?? '-' }}</div>
+                                <div class="ops-kpi-value text-xl">{{ optional($bookings->getCollection()->sortBy('check_in')->first()?->check_in)->format('j M Y') ?? '-' }}</div>
                 <div class="ops-kpi-note">Membantu admin cepat melihat prioritas operasional.</div>
             </div>
         </div>
 
         <x-common.component-card title="Filter Booking" desc="Cari booking berdasarkan kode, tamu, status, dan tanggal check-in.">
-            <form method="GET" action="{{ route('bookings.list', $villa) }}" x-data="{ dateFrom: '{{ $filters['date_from'] ?? '' }}' }" class="ops-form-grid">
-                <div class="xl:col-span-2"><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pencarian</label><input onkeyup="let v=this.value.toLowerCase(); document.querySelectorAll('table tbody tr').forEach(tr => { if(tr.children.length > 1) tr.style.display = tr.innerText.toLowerCase().includes(v) ? '' : 'none' })" type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Kode booking, tamu, telepon" class="ops-input" /></div>
+            <form data-async-page-form="true" method="GET" action="{{ route('bookings.list', $villa) }}" x-data="{ dateFrom: '{{ $filters['date_from'] ?? '' }}' }" class="ops-form-grid">
+                <div class="xl:col-span-2"><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pencarian</label><input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Kode booking, tamu, telepon" class="ops-input" /></div>
                 <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Status Payment</label><select name="payment_status" class="ops-input"><option value="">Semua</option><option value="dp" @selected(($filters['payment_status'] ?? '') === 'dp')>DP</option><option value="cicil" @selected(($filters['payment_status'] ?? '') === 'cicil')>Cicil</option><option value="lunas" @selected(($filters['payment_status'] ?? '') === 'lunas')>Lunas</option></select></div>
                 <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Status Booking</label><select name="booking_status" class="ops-input"><option value="">Semua</option><option value="confirmed" @selected(($filters['booking_status'] ?? '') === 'confirmed')>Confirmed</option><option value="cancelled" @selected(($filters['booking_status'] ?? '') === 'cancelled')>Cancelled</option></select></div>
                 <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Check-in Dari</label><input x-model="dateFrom" onclick="this.showPicker()" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="ops-input" /></div>
@@ -69,7 +69,7 @@
                                 <td class="font-medium text-gray-800 dark:text-white/90">{{ $booking->booking_code }}</td>
                                 <td>{{ $booking->guest_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $booking->guest_phone }}</div></td>
                                 <td class="font-medium text-gray-600 dark:text-gray-300">{{ $booking->villaUnit?->unit_name }}</td>
-                                <td>{{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</td>
+                                        <td>{{ $booking->check_in->format('j M Y') }} - {{ $booking->check_out->format('j M Y') }}</td>
                                 <td>Rp {{ number_format($booking->grand_total, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">Sisa: Rp {{ number_format($booking->remaining_balance, 0, ',', '.') }}</div></td>
                                 <td><div class="flex flex-col gap-1.5">@php $paymentBadge = match($booking->payment_status) { 'lunas' => 'success', 'cicil' => 'warning', default => 'info', }; @endphp <x-ui.badge :color="$paymentBadge">{{ strtoupper($booking->payment_status) }}</x-ui.badge><x-ui.badge :color="$booking->booking_status === 'confirmed' ? 'success' : 'error'">{{ ucfirst($booking->booking_status) }}</x-ui.badge></div></td>
                                 <td class="text-right"><a href="{{ route('bookings.show', $booking) }}" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Detail</a></td>

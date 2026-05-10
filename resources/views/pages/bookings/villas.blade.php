@@ -3,7 +3,7 @@
 @section('content')
     <x-common.page-breadcrumb :pageTitle="$pageTitle" />
 
-    <div class="space-y-6">
+    <div class="space-y-6" data-async-page="true">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $pageTitle }}</h2>
@@ -12,10 +12,10 @@
         </div>
 
         <x-common.component-card title="Pencarian Villa" desc="Cari villa atau unit resort berdasarkan nama.">
-            <form method="GET" action="{{ $searchAction }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <form data-async-page-form="true" method="GET" action="{{ $searchAction }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pencarian</label>
-                    <input onkeyup="let v=this.value.toLowerCase(); document.querySelectorAll('table tbody tr').forEach(tr => { if(tr.children.length > 1) tr.style.display = tr.innerText.toLowerCase().includes(v) ? '' : 'none' })" type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama villa atau unit resort" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
+                    <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama villa atau unit resort" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" />
                 </div>
                 <div class="flex items-end gap-3">
                     <button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Terapkan Filter</button>
@@ -90,7 +90,19 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">{{ $emptyStateMessage }}</td></tr>
+                            <tr>
+                                <td colspan="6" class="px-4 py-10">
+                                    <x-common.empty-state
+                                        compact
+                                        title="Belum Ada Villa untuk Booking"
+                                        description="Booking baru bisa dimulai setelah ada data villa atau resort. Tambahkan properti dulu, lalu kembali ke halaman ini."
+                                        actionLabel="Tambah Villa"
+                                        :actionHref="route('villas.create')"
+                                        secondaryActionLabel="Buka Data Villa"
+                                        :secondaryActionHref="route('villas.index')"
+                                    />
+                                </td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>

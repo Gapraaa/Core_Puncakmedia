@@ -189,7 +189,7 @@
                 @if ($invoice->booking?->villa?->is_resort)
                     <p class="muted">UNIT: {{ strtoupper($invoice->booking?->villaUnit?->unit_name ?? '-') }}</p>
                 @endif
-                <p class="muted" style="margin-top: 6px;">{{ $invoice->booking?->check_in?->format('d M Y') }} - {{ $invoice->booking?->check_out?->format('d M Y') }}</p>
+                    <p class="muted" style="margin-top: 6px;">{{ $invoice->booking?->check_in?->format('j M Y') }} - {{ $invoice->booking?->check_out?->format('j M Y') }}</p>
             </div>
         </div>
 
@@ -212,7 +212,7 @@
                     @if ($invoice->booking?->final_payment_due_date?->isSameDay($invoice->booking?->check_in))
                         SAAT CHECK-IN
                     @else
-                        {{ strtoupper($invoice->booking?->final_payment_due_date?->format('d M Y') ?? '-') }}
+                            {{ strtoupper($invoice->booking?->final_payment_due_date?->format('j M Y') ?? '-') }}
                     @endif
                 </p>
             </div>
@@ -239,7 +239,7 @@
                                 <div class="muted">{{ strtoupper($item->notes) }}</div>
                             @endif
                         </td>
-                        <td>{{ $item->reference_date?->format('d M Y') ?? '-' }}</td>
+                                        <td>{{ $item->reference_date?->format('j M Y') ?? '-' }}</td>
                         <td class="right">{{ $item->quantity }}</td>
                         <td class="right">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
                         <td class="right">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>

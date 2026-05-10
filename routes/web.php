@@ -47,7 +47,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::get('villas/{villa}/images', [VillaImageController::class, 'index'])->name('villas.images.index');
             Route::post('villas/{villa}/images', [VillaImageController::class, 'store'])->name('villas.images.store');
             Route::patch('villas/{villa}/images/order', [VillaImageController::class, 'reorder'])->name('villas.images.reorder');
+            Route::delete('villas/{villa}/images', [VillaImageController::class, 'bulkDestroy'])->name('villas.images.bulk-destroy');
             Route::patch('villas/{villa}/images/{villaImage}/cover', [VillaImageController::class, 'setCover'])->name('villas.images.cover');
+            Route::patch('villas/{villa}/images/{villaImage}/retry', [VillaImageController::class, 'retry'])->name('villas.images.retry');
             Route::delete('villas/{villa}/images/{villaImage}', [VillaImageController::class, 'destroy'])->name('villas.images.destroy');
 
             Route::get('villa-units', [VillaUnitController::class, 'index'])->name('villa-units.index');
@@ -119,16 +121,6 @@ Route::middleware(['auth', 'active'])->group(function (): void {
                 'pageTitle' => 'Laporan Keuangan',
                 'description' => 'Ekspor finance, visibilitas saldo, dan keluaran spreadsheet sync nantinya tersedia di sini.',
             ])->name('reports.finance');
-        });
-
-    Route::prefix('migration')
-        ->middleware('role:master,superadmin')
-        ->group(function (): void {
-            Route::view('/legacy', 'pages.module-placeholder', [
-                'title' => 'Pemetaan Legacy',
-                'pageTitle' => 'Pemetaan Legacy',
-                'description' => 'Pemetaan data legacy `vilas`, `reservasi`, dan data historis akan didokumentasikan serta disambungkan di sini pada fase berikutnya.',
-            ])->name('migration.legacy');
         });
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');

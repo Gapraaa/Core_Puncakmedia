@@ -49,13 +49,13 @@
                         @if ($booking->villa?->is_resort)
                             <div><span class="font-medium text-gray-800 dark:text-white/90">Unit:</span> {{ $booking->villaUnit?->unit_name }}</div>
                         @endif
-                        <div><span class="font-medium text-gray-800 dark:text-white/90">Periode:</span> {{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</div>
+                        <div><span class="font-medium text-gray-800 dark:text-white/90">Periode:</span> {{ $booking->check_in->format('j M Y') }} - {{ $booking->check_out->format('j M Y') }}</div>
                         <div>
                             <span class="font-medium text-gray-800 dark:text-white/90">Target Pelunasan:</span>
                             @if ($booking->final_payment_due_date?->isSameDay($booking->check_in))
-                                Pelunasan saat check-in ({{ $booking->final_payment_due_date?->format('d M Y') }})
+                                Pelunasan saat check-in ({{ $booking->final_payment_due_date?->format('j M Y') }})
                             @else
-                                {{ $booking->final_payment_due_date?->format('d M Y') ?? '-' }} (H-3)
+                                {{ $booking->final_payment_due_date?->format('j M Y') ?? '-' }} (H-3)
                             @endif
                         </div>
                         <div>
@@ -80,8 +80,8 @@
                 <x-common.component-card title="Ringkasan Keuangan Booking" desc="Finance utama membaca total, pembayaran, dan sisa tagihan langsung dari booking ini.">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="ops-panel-soft"><p class="text-sm text-gray-500 dark:text-gray-400">Subtotal Sebelum Diskon</p><p class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">Rp {{ number_format($booking->total_before_discount, 0, ',', '.') }}</p></div>
-                        <div class="ops-panel-soft"><p class="text-sm text-gray-500 dark:text-gray-400">Periode Menginap</p><p class="mt-2 text-base font-semibold text-gray-800 dark:text-white/90">{{ $booking->check_in->format('d M Y') }} - {{ $booking->check_out->format('d M Y') }}</p></div>
-                        <div class="ops-panel-soft md:col-span-2"><p class="text-sm text-gray-500 dark:text-gray-400">Jadwal Pelunasan</p><p class="mt-2 text-base font-semibold text-gray-800 dark:text-white/90">@if ($booking->final_payment_due_date?->isSameDay($booking->check_in)) Pelunasan saat check-in ({{ $booking->final_payment_due_date?->format('d M Y') }}) @else {{ $booking->final_payment_due_date?->format('d M Y') ?? '-' }} (H-3 sebelum check-in) @endif</p></div>
+                        <div class="ops-panel-soft"><p class="text-sm text-gray-500 dark:text-gray-400">Periode Menginap</p><p class="mt-2 text-base font-semibold text-gray-800 dark:text-white/90">{{ $booking->check_in->format('j M Y') }} - {{ $booking->check_out->format('j M Y') }}</p></div>
+                        <div class="ops-panel-soft md:col-span-2"><p class="text-sm text-gray-500 dark:text-gray-400">Jadwal Pelunasan</p><p class="mt-2 text-base font-semibold text-gray-800 dark:text-white/90">@if ($booking->final_payment_due_date?->isSameDay($booking->check_in)) Pelunasan saat check-in ({{ $booking->final_payment_due_date?->format('j M Y') }}) @else {{ $booking->final_payment_due_date?->format('j M Y') ?? '-' }} (H-3 sebelum check-in) @endif</p></div>
                     </div>
                 </x-common.component-card>
             </div>
@@ -93,7 +93,7 @@
                     <thead><tr><th>Jenis</th><th>Nama</th><th>Tanggal</th><th>Qty</th><th>Total</th></tr></thead>
                     <tbody>
                         @foreach ($booking->items as $item)
-                            <tr><td>{{ $item->item_type }}</td><td>{{ $item->item_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $item->notes }}</div></td><td>{{ $item->reference_date?->format('d M Y') ?: '-' }}</td><td>{{ $item->quantity }}</td><td>Rp {{ number_format($item->total_price, 0, ',', '.') }}</td></tr>
+                            <tr><td>{{ $item->item_type }}</td><td>{{ $item->item_name }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $item->notes }}</div></td><td>{{ $item->reference_date?->format('j M Y') ?: '-' }}</td><td>{{ $item->quantity }}</td><td>Rp {{ number_format($item->total_price, 0, ',', '.') }}</td></tr>
                         @endforeach
                     </tbody>
                 </table>
@@ -164,7 +164,7 @@
                     <thead><tr><th>Tanggal</th><th>Metode</th><th>Penerima</th><th>Jumlah</th></tr></thead>
                     <tbody>
                         @forelse ($booking->payments as $payment)
-                            <tr><td>{{ $payment->paid_at?->format('d M Y H:i') }}</td><td>{{ ucfirst($payment->payment_method) }}</td><td>{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</td><td>Rp {{ number_format($payment->amount, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $payment->note }}</div><div class="mt-2"><a href="{{ route('documents.payments.receipt', $payment) }}" target="_blank" class="text-xs font-medium text-brand-600 dark:text-brand-300">Lihat Bukti Pembayaran</a></div></td></tr>
+                                            <tr><td>{{ $payment->paid_at?->format('j M Y H:i') }}</td><td>{{ ucfirst($payment->payment_method) }}</td><td>{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</td><td>Rp {{ number_format($payment->amount, 0, ',', '.') }}<div class="text-xs text-gray-500 dark:text-gray-400">{{ $payment->note }}</div><div class="mt-2"><a href="{{ route('documents.payments.receipt', $payment) }}" target="_blank" class="text-xs font-medium text-brand-600 dark:text-brand-300">Lihat Bukti Pembayaran</a></div></td></tr>
                         @empty
                             <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada pembayaran untuk booking ini.</td></tr>
                         @endforelse

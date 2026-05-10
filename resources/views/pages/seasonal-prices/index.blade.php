@@ -3,7 +3,7 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Harga High Season" />
 
-    <div class="space-y-6">
+    <div class="space-y-6" data-async-page="true">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">Katalog Villa Harga High Season</h2>
@@ -12,8 +12,8 @@
         </div>
 
         <x-common.component-card title="Filter Villa" desc="Cari villa berdasarkan nama, lokasi, dan tipe properti.">
-            <form method="GET" action="{{ route('seasonal-prices.index') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div class="xl:col-span-2"><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pencarian</label><input onkeyup="let v=this.value.toLowerCase(); document.querySelectorAll('table tbody tr').forEach(tr => { if(tr.children.length > 1) tr.style.display = tr.innerText.toLowerCase().includes(v) ? '' : 'none' })" type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama villa, slug, lokasi" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
+            <form data-async-page-form="true" method="GET" action="{{ route('seasonal-prices.index') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div class="xl:col-span-2"><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pencarian</label><input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama villa, slug, lokasi" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90" /></div>
                 <div><label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Tipe</label><select name="type" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"><option value="">Semua</option><option value="villa" @selected(($filters['type'] ?? '') === 'villa')>Villa Biasa</option><option value="resort" @selected(($filters['type'] ?? '') === 'resort')>Resort</option></select></div>
                 <div class="flex gap-3 xl:col-span-3"><button type="submit" class="rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Terapkan Filter</button><a href="{{ route('seasonal-prices.index') }}" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]">Reset</a></div>
             </form>
@@ -34,7 +34,17 @@
                                 <td class="px-5 py-4"><div class="flex items-center justify-end gap-2"><a href="{{ $villa->is_resort ? route('seasonal-prices.units', $villa) : route('seasonal-prices.villa', $villa) }}" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600">{{ $villa->is_resort ? 'Lihat Unit' : 'Kelola Harga' }}</a></div></td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada villa yang tersedia untuk dikelola.</td></tr>
+                            <tr>
+                                <td colspan="6" class="px-5 py-10">
+                                    <x-common.empty-state
+                                        compact
+                                        title="Belum Ada Villa untuk High Season"
+                                        description="Harga high season baru bisa dikelola setelah data villa atau resort dibuat."
+                                        actionLabel="Tambah Villa"
+                                        :actionHref="route('villas.create')"
+                                    />
+                                </td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>

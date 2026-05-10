@@ -7,12 +7,15 @@
 
 import { execFileSync, spawn } from "child_process";
 import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const IS_WINDOWS = process.platform === "win32";
 const VITE_BIN = resolve(ROOT, "node_modules", "vite", "bin", "vite.js");
 const SHOULD_RUN_TESTS = String(process.env.DEV_RUN_TESTS || "").toLowerCase() === "true";
+const SHOULD_START_LARAGON = !["false", "0", "no"].includes(String(process.env.DEV_START_LARAGON || "true").toLowerCase());
+const LARAGON_EXE = "C:\\laragon\\laragon.exe";
+const LARAGON_INI = "C:\\laragon\\usr\\laragon.ini";
 
 const colors = {
   reset: "\x1b[0m",
@@ -251,6 +254,234 @@ function readEnvValue(key) {
   return target.slice(key.length + 1).replace(/^['"]|['"]$/g, "");
 }
 
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function parseIni(content) {
+  const result = {};
+  let currentSection = null;
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+
+    if (!line || line.startsWith(";") || line.startsWith("#")) {
+      continue;
+    }
+
+    const sectionMatch = line.match(/^\[(.+)\]$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      result[currentSection] = result[currentSection] ?? {};
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex === -1 || !currentSection) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    result[currentSection][key] = value;
+  }
+
+  return result;
+}
+
+function readLaragonConfig() {
+  if (!IS_WINDOWS || !existsSync(LARAGON_INI)) {
+    return null;
+  }
+
+  try {
+    return parseIni(readFileSync(LARAGON_INI, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function isLaragonRunning() {
+  if (!IS_WINDOWS) {
+    return false;
+  }
+
+  try {
+    const output = execFileSync("tasklist.exe", ["/FI", "IMAGENAME eq laragon.exe"], {
+      cwd: ROOT,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    return /laragon\.exe/i.test(output);
+  } catch {
+    return false;
+  }
+}
+
+function isProcessRunning(imageName) {
+  if (!IS_WINDOWS) {
+    return false;
+  }
+
+  try {
+    const output = execFileSync("tasklist.exe", ["/FI", `IMAGENAME eq ${imageName}`], {
+      cwd: ROOT,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    return new RegExp(imageName.replace(".", "\\."), "i").test(output);
+  } catch {
+    return false;
+  }
+}
+
+function startDetachedExecutable(executable, args = [], options = {}) {
+  const child = spawn(executable, args, {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    ...options,
+  });
+
+  child.unref();
+}
+
+function waitForProcess(imageName, attempts = 8, delayMs = 500) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (isProcessRunning(imageName)) {
+      return true;
+    }
+
+    sleep(delayMs);
+  }
+
+  return false;
+}
+
+function startLaragonServices(config) {
+  if (!IS_WINDOWS || !config) {
+    return [];
+  }
+
+  const services = [];
+
+  const mysqlVersion = config.mysql?.Version;
+  const mysqlUse = config.mysql?.Use === "-1";
+  if (mysqlUse && mysqlVersion) {
+    const mysqldPath = `C:\\laragon\\bin\\mysql\\${mysqlVersion}\\bin\\mysqld.exe`;
+    const myIniPath = `C:\\laragon\\bin\\mysql\\${mysqlVersion}\\my.ini`;
+
+    if (existsSync(mysqldPath) && existsSync(myIniPath)) {
+      if (isProcessRunning("mysqld.exe")) {
+        ok("MySQL Laragon sudah berjalan");
+        services.push({ name: "MySQL", started: false, running: true });
+      } else {
+        try {
+          startDetachedExecutable(mysqldPath, [`--defaults-file=${myIniPath}`], {
+            cwd: dirname(mysqldPath),
+          });
+          const running = waitForProcess("mysqld.exe");
+
+          if (running) {
+            ok("MySQL Laragon berhasil dijalankan");
+          } else {
+            warn("MySQL Laragon belum terdeteksi aktif setelah startup");
+          }
+
+          services.push({ name: "MySQL", started: true, running });
+        } catch (error) {
+          warn(`MySQL Laragon gagal dijalankan: ${error.message}`);
+          services.push({ name: "MySQL", started: false, running: false });
+        }
+      }
+    }
+  }
+
+  const apacheVersion = config.apache?.Version;
+  const apacheUse = config.apache?.Use === "-1";
+  if (apacheUse && apacheVersion) {
+    const httpdPath = `C:\\laragon\\bin\\apache\\${apacheVersion}\\bin\\httpd.exe`;
+
+    if (existsSync(httpdPath)) {
+      if (isProcessRunning("httpd.exe")) {
+        ok("Apache Laragon sudah berjalan");
+        services.push({ name: "Apache", started: false, running: true });
+      } else {
+        try {
+          startDetachedExecutable(httpdPath, [], {
+            cwd: dirname(httpdPath),
+          });
+          const running = waitForProcess("httpd.exe");
+
+          if (running) {
+            ok("Apache Laragon berhasil dijalankan");
+          } else {
+            warn("Apache Laragon belum terdeteksi aktif setelah startup");
+          }
+
+          services.push({ name: "Apache", started: true, running });
+        } catch (error) {
+          warn(`Apache Laragon gagal dijalankan: ${error.message}`);
+          services.push({ name: "Apache", started: false, running: false });
+        }
+      }
+    }
+  }
+
+  return services;
+}
+
+function startLaragonIfNeeded() {
+  if (!IS_WINDOWS || !SHOULD_START_LARAGON) {
+    return { attempted: false, started: false, running: false, path: null, services: [] };
+  }
+
+  if (!existsSync(LARAGON_EXE)) {
+    warnings.push("Laragon tidak ditemukan di C:\\laragon\\laragon.exe");
+    warn("Laragon tidak ditemukan, launcher lanjut tanpa auto-start");
+    return { attempted: true, started: false, running: false, path: null, services: [] };
+  }
+
+  const config = readLaragonConfig();
+
+  if (isLaragonRunning()) {
+    ok("Laragon sudah berjalan");
+    return {
+      attempted: true,
+      started: false,
+      running: true,
+      path: LARAGON_EXE,
+      services: startLaragonServices(config),
+    };
+  }
+
+  try {
+    const laragon = spawn(LARAGON_EXE, [], {
+      cwd: dirname(LARAGON_EXE),
+      detached: true,
+      stdio: "ignore",
+      windowsHide: false,
+    });
+
+    laragon.unref();
+    ok("Laragon berhasil dijalankan otomatis");
+    info("Tunggu sebentar jika MySQL / Apache masih proses startup");
+    return {
+      attempted: true,
+      started: true,
+      running: true,
+      path: LARAGON_EXE,
+      services: startLaragonServices(config),
+    };
+  } catch (error) {
+    warnings.push("Laragon gagal dijalankan otomatis");
+    warn(`Laragon gagal dijalankan otomatis: ${error.message}`);
+    return { attempted: true, started: false, running: false, path: LARAGON_EXE, services: [] };
+  }
+}
+
 function createProcess(command, args, options = {}) {
   const resolved = locateExecutable(command);
 
@@ -432,6 +663,8 @@ if (existsSync(resolve(ROOT, "node_modules"))) {
 
 header(icons.database, "Phase 3: Checking Database", "bgMagenta");
 
+const laragonState = startLaragonIfNeeded();
+
 const queueConnection = readEnvValue("QUEUE_CONNECTION") || "database";
 info(`Queue connection: ${queueConnection}`);
 
@@ -528,9 +761,23 @@ if (warnings.length === 0) {
 
 console.log("");
 header(icons.launch, "Launching Dev Servers", "bgMagenta");
+if (laragonState.running) {
+  console.log(`  ${c("orange", "🟠 Laragon")}`.padEnd(27, " ") + `${c("white", laragonState.started ? "auto-started" : "already running")}`);
+  for (const service of laragonState.services) {
+    const label = `└─ ${service.name}`;
+    const status = service.running
+      ? (service.started ? "started" : "ready")
+      : (service.started ? "starting failed" : "not running");
+
+    console.log(`  ${c("orange", label)}`.padEnd(27, " ") + `${c(service.running ? "green" : "yellow", status)}`);
+  }
+}
 console.log(`  ${c("green", `${icons.laravel} Laravel`)}`.padEnd(27, " ") + `${c("white", "http://127.0.0.1:8000")}`);
 console.log(`  ${c("magenta", `${icons.vite} Vite`)}`.padEnd(27, " ") + `${c("white", "http://127.0.0.1:5173")}`);
 console.log(`  ${c("cyan", `${icons.info} Queue`)}`.padEnd(27, " ") + `${c("white", "php artisan queue:work --tries=1")}`);
+if (laragonState.running) {
+  console.log(`  ${c("orange", "●")} ${c("bold", "LARAGON")} ${c("gray", "::")} ${c("green", laragonState.started ? "STARTED" : "READY")}`);
+}
 console.log(`  ${c("green", "●")} ${c("bold", "LARAVEL")}  ${c("gray", "::")} ${c("yellow", "STARTING")}`);
 console.log(`  ${c("magenta", "●")} ${c("bold", "VITE")}     ${c("gray", "::")} ${c("yellow", "STARTING")}`);
 console.log(`  ${c("cyan", "●")} ${c("bold", "QUEUE")}    ${c("gray", "::")} ${c("yellow", "STARTING")}`);

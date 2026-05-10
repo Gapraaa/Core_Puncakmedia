@@ -192,7 +192,7 @@
     cursor: pointer;
   }
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50;
+    @apply relative min-h-screen font-normal font-outfit z-1 bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100;
   }
 
   html {

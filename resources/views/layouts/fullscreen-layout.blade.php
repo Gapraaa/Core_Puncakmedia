@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Dashboard' }} | TailAdmin - Laravel Tailwind CSS Admin Dashboard Template</title>
+    <title>{{ $title ?? 'Dashboard' }} | {{ config('app.name', 'Core PMS') }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo/logo-icon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
 
     <script>
         (() => {
@@ -79,15 +81,46 @@
 </head>
 
 <body
+    class="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
     x-data="{
-        loaded: true,
+        isLoading: false,
         loaderTimer: null,
+        scrollStateKey() {
+            return `scroll-state:${window.location.pathname}${window.location.search}`;
+        },
+        saveScrollState() {
+            sessionStorage.setItem(this.scrollStateKey(), JSON.stringify({
+                windowY: window.scrollY || window.pageYOffset || 0,
+            }));
+        },
+        restoreScrollState() {
+            const rawState = sessionStorage.getItem(this.scrollStateKey());
+
+            if (!rawState) {
+                return;
+            }
+
+            sessionStorage.removeItem(this.scrollStateKey());
+
+            try {
+                const state = JSON.parse(rawState);
+
+                requestAnimationFrame(() => {
+                    window.scrollTo({
+                        top: Number(state.windowY ?? 0),
+                        behavior: 'auto',
+                    });
+                });
+            } catch (error) {
+                // Ignore malformed session state and let the page use default scroll.
+            }
+        },
         hideLoader() {
             if (this.loaderTimer) {
                 clearTimeout(this.loaderTimer);
                 this.loaderTimer = null;
             }
-            this.loaded = false;
+            this.isLoading = false;
         },
         showLoader() {
             if (this.loaderTimer) {
@@ -95,7 +128,7 @@
                 this.loaderTimer = null;
             }
 
-            this.loaded = true;
+            this.isLoading = true;
         },
         scheduleLoader() {
             if (this.loaderTimer) {
@@ -146,8 +179,14 @@
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    window.addEventListener('pageshow', () => hideLoader());
-    requestAnimationFrame(() => hideLoader());
+    window.addEventListener('pageshow', () => {
+        restoreScrollState();
+        hideLoader();
+    });
+    requestAnimationFrame(() => {
+        restoreScrollState();
+        hideLoader();
+    });
     document.addEventListener('click', (event) => {
         const link = event.target.closest('a');
 
@@ -162,7 +201,12 @@
             return;
         }
 
+        if (form.dataset.confirm && form.dataset.confirmBypassed !== 'true') {
+            return;
+        }
+
         if (form.method.toUpperCase() !== 'GET') {
+            saveScrollState();
             scheduleLoader();
         }
     }, true);">

@@ -40,9 +40,14 @@
         </div>
 
         @if ($cards->isEmpty())
-            <div class="rounded-2xl border border-dashed border-gray-300 px-6 py-16 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                Tidak ada villa atau unit aktif yang cocok dengan filter ini.
-            </div>
+            <x-common.empty-state
+                title="Kalender Belum Bisa Ditampilkan"
+                description="Kalender akan mulai terisi setelah ada villa atau resort aktif. Tambahkan properti dulu agar tim sales bisa mulai melihat ketersediaan."
+                actionLabel="Tambah Villa"
+                :actionHref="route('villas.create')"
+                secondaryActionLabel="Buka Data Villa"
+                :secondaryActionHref="route('villas.index')"
+            />
         @else
             <div class="grid grid-cols-1 gap-6">
                 @foreach ($cards as $card)

@@ -130,7 +130,7 @@
             </div>
             <div class="card">
                 <div class="row"><span>No. Invoice</span><span class="strong">{{ strtoupper($payment->invoice?->invoice_number ?? '-') }}</span></div>
-                <div class="row"><span>Tanggal Bayar</span><span>{{ $payment->paid_at?->format('d M Y H:i') }}</span></div>
+                        <div class="row"><span>Tanggal Bayar</span><span>{{ $payment->paid_at?->format('j M Y H:i') }}</span></div>
                 <div class="row"><span>Metode</span><span>{{ ucfirst($payment->payment_method) }}</span></div>
                 <div class="row"><span>Diterima Oleh</span><span>{{ ucfirst(str_replace('_', ' ', $payment->received_by)) }}</span></div>
             </div>

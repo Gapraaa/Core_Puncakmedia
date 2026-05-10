@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\delete;
 use function Pest\Laravel\patch;
 use function Pest\Laravel\post;
 
@@ -138,7 +139,108 @@ test('villa gallery reorder must include all unique image ids from the same vill
 
     patch(route('villas.images.reorder', $villa), [
         'ordered_image_ids' => [$second->id, $second->id],
-    ])->assertSessionHasErrors('ordered_image_ids');
+    ])->assertSessionHasErrors(['ordered_image_ids.0', 'ordered_image_ids.1']);
 
     expect($villa->images()->orderBy('sort_order')->pluck('id')->all())->toBe([$first->id, $second->id]);
+});
+
+test('failed villa image can be retried and re-queued', function () {
+    $villa = Villa::query()->create([
+        'name' => 'Villa Retry Test',
+        'slug' => 'villa-retry-test',
+        'location' => 'Puncak',
+        'is_resort' => false,
+        'status' => 'active',
+    ]);
+
+    Storage::disk('public')->put("villas/{$villa->id}/images/retry/original.jpg", 'fake-image-content');
+    Storage::disk('public')->put("villas/{$villa->id}/images/retry/main.webp", 'fake-main-webp');
+    Storage::disk('public')->put("villas/{$villa->id}/images/retry/thumb.webp", 'fake-thumb-webp');
+
+    $image = VillaImage::query()->create([
+        'villa_id' => $villa->id,
+        'uuid' => (string) Str::uuid(),
+        'disk' => 'public',
+        'original_path' => "villas/{$villa->id}/images/retry/original.jpg",
+        'webp_path' => "villas/{$villa->id}/images/retry/main.webp",
+        'thumb_path' => "villas/{$villa->id}/images/retry/thumb.webp",
+        'original_name' => 'villa-retry-test-01.jpg',
+        'status' => 'failed',
+        'sort_order' => 1,
+        'is_cover' => true,
+    ]);
+
+    patch(route('villas.images.retry', [$villa, $image]))->assertRedirect();
+
+    $image->refresh();
+
+    expect($image->status)->toBe('pending')
+        ->and($image->webp_path)->toBeNull()
+        ->and($image->thumb_path)->toBeNull();
+
+    Storage::disk('public')->assertExists("villas/{$villa->id}/images/retry/original.jpg");
+    Storage::disk('public')->assertMissing("villas/{$villa->id}/images/retry/main.webp");
+    Storage::disk('public')->assertMissing("villas/{$villa->id}/images/retry/thumb.webp");
+
+    Queue::assertPushed(ProcessVillaImage::class, fn (ProcessVillaImage $job) => $job->villaImageId === $image->id);
+});
+
+test('selected villa gallery images can be deleted in bulk', function () {
+    $villa = Villa::query()->create([
+        'name' => 'Villa Bulk Delete Test',
+        'slug' => 'villa-bulk-delete-test',
+        'location' => 'Puncak',
+        'is_resort' => false,
+        'status' => 'active',
+    ]);
+
+    Storage::disk('public')->put("villas/{$villa->id}/images/one/original.jpg", 'one');
+    Storage::disk('public')->put("villas/{$villa->id}/images/two/original.jpg", 'two');
+    Storage::disk('public')->put("villas/{$villa->id}/images/three/original.jpg", 'three');
+
+    $first = VillaImage::query()->create([
+        'villa_id' => $villa->id,
+        'uuid' => (string) Str::uuid(),
+        'disk' => 'public',
+        'original_path' => "villas/{$villa->id}/images/one/original.jpg",
+        'original_name' => 'one.jpg',
+        'status' => 'ready',
+        'sort_order' => 1,
+        'is_cover' => true,
+    ]);
+
+    $second = VillaImage::query()->create([
+        'villa_id' => $villa->id,
+        'uuid' => (string) Str::uuid(),
+        'disk' => 'public',
+        'original_path' => "villas/{$villa->id}/images/two/original.jpg",
+        'original_name' => 'two.jpg',
+        'status' => 'ready',
+        'sort_order' => 2,
+        'is_cover' => false,
+    ]);
+
+    $third = VillaImage::query()->create([
+        'villa_id' => $villa->id,
+        'uuid' => (string) Str::uuid(),
+        'disk' => 'public',
+        'original_path' => "villas/{$villa->id}/images/three/original.jpg",
+        'original_name' => 'three.jpg',
+        'status' => 'ready',
+        'sort_order' => 3,
+        'is_cover' => false,
+    ]);
+
+    delete(route('villas.images.bulk-destroy', $villa), [
+        'selected_image_ids' => [$first->id, $second->id],
+    ])->assertRedirect();
+
+    expect($villa->images()->count())->toBe(1)
+        ->and($villa->images()->first()?->id)->toBe($third->id)
+        ->and($villa->images()->first()?->is_cover)->toBeTrue()
+        ->and($villa->images()->first()?->sort_order)->toBe(1);
+
+    Storage::disk('public')->assertMissing("villas/{$villa->id}/images/one/original.jpg");
+    Storage::disk('public')->assertMissing("villas/{$villa->id}/images/two/original.jpg");
+    Storage::disk('public')->assertExists("villas/{$villa->id}/images/three/original.jpg");
 });

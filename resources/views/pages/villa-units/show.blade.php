@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Detail Villa Unit" />
@@ -7,7 +7,7 @@
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $villaUnit->unit_name }}</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $villaUnit->villa?->name }} � {{ $villaUnit->unit_type ?: 'Tipe belum diisi' }}</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $villaUnit->villa?->name }} • {{ $villaUnit->unit_type ?: 'Tipe belum diisi' }}</p>
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('villa-units.edit', $villaUnit) }}" class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">Edit Villa Unit</a>
@@ -43,7 +43,7 @@
                     <thead><tr class="border-b border-gray-100 dark:border-gray-800"><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Periode</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Harga</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Catatan</th></tr></thead>
                     <tbody>
                         @forelse ($villaUnit->seasonalPrices as $seasonalPrice)
-                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $seasonalPrice->start_date->format('d M Y') }} - {{ $seasonalPrice->end_date->format('d M Y') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">Rp {{ number_format($seasonalPrice->price, 0, ',', '.') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $seasonalPrice->note ?: '-' }}</td></tr>
+                            <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $seasonalPrice->start_date->format('j M Y') }} - {{ $seasonalPrice->end_date->format('j M Y') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">Rp {{ number_format($seasonalPrice->price, 0, ',', '.') }}</td><td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ $seasonalPrice->note ?: '-' }}</td></tr>
                         @empty
                             <tr><td colspan="3" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada harga musiman.</td></tr>
                         @endforelse
@@ -53,3 +53,4 @@
         </x-common.component-card>
     </div>
 @endsection
+
